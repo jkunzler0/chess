@@ -7,6 +7,10 @@ import (
 
 type Board [8][8]rune
 
+func defaultBoard(b *Board) error {
+	return newBoard(b, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+}
+
 func newBoard(b *Board, pos string) error {
 
 	// s := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"

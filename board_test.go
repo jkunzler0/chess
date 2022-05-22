@@ -10,4 +10,8 @@ func TestNewBoard(t *testing.T) {
 	// t.Log(b)
 	printBoard(&b)
 
+	var c Board
+	defaultBoard(&c)
+	printBoard(&c)
+
 }
