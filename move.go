@@ -6,6 +6,9 @@ import (
 	"unicode"
 )
 
+const White bool = true
+const Black bool = false
+
 type Move struct {
 	X1, Y1, X2, Y2 int
 	StartPiece     rune
@@ -26,9 +29,7 @@ func makeMove(b *Board, s string, color bool) error {
 	x1, y1, x2, y2 := int(8-(pos[1]-48)), int(pos[0]-97), int(8-(pos[3]-48)), int(pos[2]-97)
 
 	// Check bounds on the move
-	lessThanEight := x1 < 8 && x2 < 8 && y1 < 8 && y2 < 8
-	atLeastZero := 0 <= x1 && 0 <= x2 && 0 <= y1 && 0 <= y2
-	if !lessThanEight || !atLeastZero {
+	if !inBounds(x1, y1) || !inBounds(x2, y2) {
 		return fmt.Errorf("invalid bounds for move")
 	}
 
@@ -66,21 +67,21 @@ func validateMove(m Move) bool {
 	// TODO cleanup this switch?
 	switch m.StartPiece {
 	case 'P', 'p':
-		validateMoveJump(m)
+		return validateMoveJump(m)
 		// TODO all the rules for pawn
 	case 'N', 'n':
-		validateMoveJump(m)
+		return validateMoveJump(m)
 	case 'K', 'k':
-		validateMoveJump(m)
+		return validateMoveJump(m)
 		// TODO Restrict movement into checkmate
 	case 'Q', 'B', 'q', 'b':
-		validateMoveCrawl(m)
+		return validateMoveCrawl(m)
 	case 'R', 'r':
-		validateMoveCrawl(m)
+		return validateMoveCrawl(m)
 		// TODO Add castling
 	}
 
-	return true
+	return false
 }
 
 func validateMoveJump(m Move) bool {
@@ -93,8 +94,28 @@ func validateMoveJump(m Move) bool {
 	return false
 }
 func validateMoveCrawl(m Move) bool {
+	for _, i := range directions[m.StartPiece] {
+		x, y := m.X1, m.Y1
+		for inBounds(x, y) {
+			x += i[0]
+			y += i[1]
 
-	return true
+			// We made it to the endPiece
+			if x == m.X2 && y == m.Y2 {
+				return true
+			} else if m.Board[x][y] != '-' {
+				break
+			}
+		}
+	}
+	return false
+}
+
+func inBounds(x int, y int) bool {
+	if x < 8 && y < 8 && x >= 0 && y >= 0 {
+		return true
+	}
+	return false
 }
 
 // func flipMove(s string) {
