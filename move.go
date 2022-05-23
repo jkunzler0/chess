@@ -89,18 +89,16 @@ func validateMoveJump(m Move) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, fmt.Errorf("failled validateMoveJump")
+	return false, fmt.Errorf("%s cannot move there", string(m.StartPiece))
 }
 
 // Queen, Bishops, and Rooks crawl/slide across the board
 func validateMoveCrawl(m Move) (bool, error) {
 	directions := getDirections()
 	for _, i := range directions[m.StartPiece] {
-		x, y := m.X1, m.Y1
+		x, y := m.X1+i[0], m.Y1+i[1]
 		for inBounds(x, y) {
-			x += i[0]
-			y += i[1]
-
+			// fmt.Println(x, y, m.X1, m.Y1, m.X2, m.Y2, i)
 			if x == m.X2 && y == m.Y2 {
 				// We made it to the endPiece
 				return true, nil
@@ -108,9 +106,11 @@ func validateMoveCrawl(m Move) (bool, error) {
 				// We ran into another piece
 				break
 			}
+			x += i[0]
+			y += i[1]
 		}
 	}
-	return false, fmt.Errorf("failled validateMoveCrawl")
+	return false, fmt.Errorf("%s cannot move there", string(m.StartPiece))
 }
 
 // Helper functions

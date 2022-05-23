@@ -20,24 +20,26 @@ func newBoard(b *Board, pos string) error {
 		return fmt.Errorf("invalid board")
 	}
 
-	y := 0
-	for _, row := range s {
-		for x, piece := range row {
-
-			if strings.Contains("012345678", string(piece)) {
-				x += int(piece - '0')
-				for j := 0; j < x; j++ {
+	for y, rank := range s {
+		x := 0
+		for _, piece := range rank {
+			if strings.Contains("12345678", string(piece)) {
+				numOfSpaces := int(piece - '0')
+				for j := x; j < x+numOfSpaces; j++ {
 					b[j][y] = '-'
 				}
+				x += numOfSpaces - 1
 			} else if strings.Contains("prnbqkPRNBQK", string(piece)) {
 				b[x][y] = piece
 			} else {
-				return fmt.Errorf("invalid board")
+				return fmt.Errorf("board contains invalid char %s", string(piece))
 			}
+			x += 1
 		}
-		y += 1
+		if x != 8 {
+			return fmt.Errorf("board is missing pieces")
+		}
 	}
-
 	return nil
 }
 
@@ -48,8 +50,7 @@ func printBoard(b *Board) {
 		for j := 0; j < 8; j++ {
 			fmt.Print(" ", string(b[j][i]))
 		}
-		fmt.Print(" |")
-		fmt.Println()
+		fmt.Println(" |")
 	}
 	fmt.Println("  |_________________|")
 }
