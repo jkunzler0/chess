@@ -8,7 +8,10 @@ import (
 
 type Move struct {
 	X1, Y1, X2, Y2 int
+	StartPiece     rune
+	EndPiece       rune
 	Color          bool
+	Board          *Board
 }
 
 func makeMove(b *Board, s string, color bool) error {
@@ -17,39 +20,80 @@ func makeMove(b *Board, s string, color bool) error {
 
 	pos := strings.ReplaceAll(s, " ", "")
 	if len(pos) != 4 {
-		return fmt.Errorf("invalid board")
+		return fmt.Errorf("invalid bounds for move")
 	}
 
-	move := Move{int(8 - (pos[1] - 48)), int(pos[0] - 97),
-		int(8 - (pos[3] - 48)), int(pos[2] - 97),
-		color}
+	x1, y1, x2, y2 := int(8-(pos[1]-48)), int(pos[0]-97), int(8-(pos[3]-48)), int(pos[2]-97)
 
-	if validateMove(b, move) {
-		b[move.X1][move.Y1], b[move.X2][move.Y2] = '-', b[move.X1][move.Y1]
+	// Check bounds on the move
+	lessThanEight := x1 < 8 && x2 < 8 && y1 < 8 && y2 < 8
+	atLeastZero := 0 <= x1 && 0 <= x2 && 0 <= y1 && 0 <= y2
+	if !lessThanEight || !atLeastZero {
+		return fmt.Errorf("invalid bounds for move")
+	}
+
+	m := Move{x1, y1, x2, y2, b[x1][y1], b[x2][y2], color, b}
+
+	if validateMove(m) {
+		m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
 	}
 
 	return nil
 
 }
 
-var ability = map[rune]int{'r': 2, h: 3}
+// const N, NE, E, SE, S, SW, W, NW = {0,1}, {1,1}
+// TODO cleanup directions, with const?
+// type Piece rune
+// TODO replace StartPiece and EndPiece with type Piece pointers
 
-func validateMove(b *Board, move Move) bool {
+var directions = map[rune][][2]int{'P': {{0, 1}, {0, 2}, {1, 1}, {-1, 1}},
+	'N': {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}},
+	'B': {{1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
+	'R': {{0, 1}, {0, -1}, {1, 0}, {-1, 0}},
+	'Q': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
+	'K': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}}}
 
-	// if in bounds
+func validateMove(m Move) bool {
 
-	start := b[move.X1][move.Y1]
-	end := b[move.X2][move.Y2]
-
-	// if start is not my piece or end is my piece, return
-	validStart := move.Color && unicode.IsUpper(start) || !move.Color && unicode.IsLower(start)
-	validEnd := end == '-' || move.Color && unicode.IsLower(end) || !move.Color && unicode.IsUpper(start)
+	// Return if start is not my color OR if end is my color
+	validStart := strings.Contains("prnbqkPRNBQK", string(m.StartPiece)) && (m.Color && unicode.IsUpper(m.StartPiece) || !m.Color && unicode.IsLower(m.StartPiece))
+	validEnd := m.EndPiece == '-' || m.Color && unicode.IsLower(m.EndPiece) || !m.Color && unicode.IsUpper(m.EndPiece)
 	if !validStart || !validEnd {
 		return false
 	}
 
-	// if have the ability to move there
-	// if there is nothing in my way
+	// TODO cleanup this switch?
+	switch m.StartPiece {
+	case 'P', 'p':
+		validateMoveJump(m)
+		// TODO all the rules for pawn
+	case 'N', 'n':
+		validateMoveJump(m)
+	case 'K', 'k':
+		validateMoveJump(m)
+		// TODO Restrict movement into checkmate
+	case 'Q', 'B', 'q', 'b':
+		validateMoveCrawl(m)
+	case 'R', 'r':
+		validateMoveCrawl(m)
+		// TODO Add castling
+	}
+
+	return true
+}
+
+func validateMoveJump(m Move) bool {
+	j := [2]int{m.X2 - m.X1, m.Y2 - m.Y1}
+	for _, i := range directions[m.StartPiece] {
+		if i == j {
+			return true
+		}
+	}
+	return false
+}
+func validateMoveCrawl(m Move) bool {
+
 	return true
 }
 
