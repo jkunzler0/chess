@@ -29,6 +29,7 @@ func TestNewBoard(t *testing.T) {
 		t.Error(err)
 	}
 	printBoard(&c)
+	printBoardBasic(&c)
 
 	// Invalid boards
 	err = newBoard(&c, "8/4pK2/8/8/8/PPPPPPPP/RNBQ3R")

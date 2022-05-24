@@ -61,8 +61,17 @@ func validateMove(m Move) (bool, error) {
 	// Check rules for specific pieces
 	switch m.StartPiece {
 	case 'P', 'p':
+
+		// Extra rules for pawn
+		if m.Y1-m.Y2 == 2 && (m.Y1 != 1 && m.Y1 != 6) {
+			return false, fmt.Errorf("pawn can only advance 2 squares if it has not already moved")
+		} else if (m.X1-m.X2 != 0 && m.EndPiece == '-') || (m.X1-m.X2 == 0 && m.EndPiece != '-') {
+			return false, fmt.Errorf("pawn can only attack diagonally and move vertically")
+		} else if m.Y1-m.Y2 >= 1 && !m.Color || m.Y1-m.Y2 <= -1 && m.Color {
+			return false, fmt.Errorf("pawn is going the wrong way")
+		}
+
 		return validateMoveJump(m)
-		// TODO all the extra rules for pawn
 	case 'N', 'n':
 		return validateMoveJump(m)
 	case 'K', 'k':
@@ -80,11 +89,10 @@ func validateMove(m Move) (bool, error) {
 
 // Pawns, Knights, and Kings jump to a location (as opposed to crawling/sliding)
 func validateMoveJump(m Move) (bool, error) {
-	directions := getDirections()
-	// fmt.Println(m.X1, " ", m.Y1, " ", m.X2, " ", m.Y2)
+	// fmt.Println("coor", m.X1, " ", m.Y1, " ", m.X2, " ", m.Y2)
 	j := [2]int{m.X1 - m.X2, m.Y1 - m.Y2}
-	for _, i := range directions[m.StartPiece] {
-		// fmt.Println(i, " ", j)
+	for _, i := range getDirections(m.StartPiece) {
+		// fmt.Println("match", i, " ", j)
 		if i == j {
 			return true, nil
 		}
@@ -94,8 +102,7 @@ func validateMoveJump(m Move) (bool, error) {
 
 // Queen, Bishops, and Rooks crawl/slide across the board
 func validateMoveCrawl(m Move) (bool, error) {
-	directions := getDirections()
-	for _, i := range directions[m.StartPiece] {
+	for _, i := range getDirections(m.StartPiece) {
 		x, y := m.X1+i[0], m.Y1+i[1]
 		for inBounds(x, y) {
 			// fmt.Println(x, y, m.X1, m.Y1, m.X2, m.Y2, i)
@@ -120,12 +127,25 @@ func inBounds(x int, y int) bool {
 	}
 	return false
 }
-func getDirections() map[rune][][2]int {
-	// Hide piece directions in a get function to avoid global variables
-	return map[rune][][2]int{'P': {{0, 1}, {0, 2}, {1, 1}, {-1, 1}},
+
+func getDirections(piece rune) [][2]int {
+	var directions = map[rune][][2]int{'P': {{0, 1}, {0, 2}, {1, 1}, {-1, 1}, {0, -1}, {0, -2}, {1, -1}, {-1, -1}},
 		'N': {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}},
 		'B': {{1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
 		'R': {{0, 1}, {0, -1}, {1, 0}, {-1, 0}},
 		'Q': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
 		'K': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}}}
+
+	if unicode.IsLetter(piece) {
+		return directions[unicode.ToUpper(piece)]
+	} else {
+		return [][2]int{} // TODO Could return error here
+	}
+}
+
+// Return (white in check, black in check, white in checkmate, black in checkmate)
+func inCheck() (bool, bool, bool, bool) {
+	// check check
+	// if check, check checkmate
+	return true, false, true, false
 }

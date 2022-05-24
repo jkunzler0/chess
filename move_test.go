@@ -19,6 +19,7 @@ func TestMakeMove(t *testing.T) {
 		err = makeMove(&b, x, White)
 		if err != nil {
 			t.Error(x, err)
+			break
 		}
 	}
 	printBoard(&b)
@@ -29,16 +30,23 @@ func TestMakeMove(t *testing.T) {
 		err = makeMove(&b, x, White)
 		if err == nil {
 			t.Error(x, " expects error")
+			break
 		}
 	}
 
 	// Test black and pawn movement
-	// moves := []string{""}
-	// for _, x := range moves {
-	// 	err = makeMove(&b, x, Black)
-	// 	if err == nil {
-	// 		t.Error(x, " expects error")
-	// 	}
-	// }
+	moves := []string{"f7f5", "f5e4"}
+	for _, x := range moves {
+		err = makeMove(&b, x, Black)
+		if err != nil {
+			t.Error(x, err)
+			break
+		}
+	}
+	printBoard(&b)
 
+}
+
+func TestInCheck(t *testing.T) {
+	inCheck()
 }
