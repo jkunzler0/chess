@@ -20,6 +20,10 @@ type Move struct {
 	Board          Board
 }
 
+// #######################################################################
+// (Section 1) Moving and Verifying Moves ################################
+// #######################################################################
+
 func makeMove(b *Board, s string, color bool) error {
 	// e.g.	`s := "a2 a3"` OR `s := "a2a3"`
 
@@ -76,8 +80,18 @@ func validateMove(m Move) (bool, error) {
 	case 'N', 'n':
 		return validateMoveJump(m)
 	case 'K', 'k':
-		return validateMoveJump(m)
-		// TODO Restrict movement into checkmate
+		// Restrict movement into checkmate
+		if valid, err := validateMoveJump(m); valid {
+			m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
+			check, _ := inCheck(m.Board)
+			if unicode.IsUpper(m.StartPiece) {
+				return !check[0], fmt.Errorf("cannot move king into check")
+			} else {
+				return !check[1], fmt.Errorf("cannot move king into check")
+			}
+		} else {
+			return valid, err
+		}
 	case 'Q', 'B', 'q', 'b':
 		return validateMoveCrawl(m)
 	case 'R', 'r':
@@ -121,28 +135,9 @@ func validateMoveCrawl(m Move) (bool, error) {
 	return false, fmt.Errorf("%s cannot move there", string(m.StartPiece))
 }
 
-// Helper functions
-func inBounds(x int, y int) bool {
-	if x < 8 && y < 8 && x >= 0 && y >= 0 {
-		return true
-	}
-	return false
-}
-
-func getDirections(piece rune) [][2]int {
-	var directions = map[rune][][2]int{'P': {{0, 1}, {0, 2}, {1, 1}, {-1, 1}, {0, -1}, {0, -2}, {1, -1}, {-1, -1}},
-		'N': {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}},
-		'B': {{1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
-		'R': {{0, 1}, {0, -1}, {1, 0}, {-1, 0}},
-		'Q': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
-		'K': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}}}
-
-	if unicode.IsLetter(piece) {
-		return directions[unicode.ToUpper(piece)]
-	} else {
-		return [][2]int{} // TODO Could return error here
-	}
-}
+// #######################################################################
+// (Section 2) Check and Checkmate #######################################
+// #######################################################################
 
 func inCheck(b Board) ([2]bool, error) {
 
@@ -186,7 +181,6 @@ func inCheckmate(b Board, kingColor bool) bool {
 			if unicode.IsLetter(b[x][y]) &&
 				(kingColor && unicode.IsUpper(b[x][y]) || !kingColor && unicode.IsLower(b[x][y])) {
 
-				fmt.Println(string(b[x][y]), kingColor)
 				m = Move{X1: x, Y1: y, Color: kingColor, StartPiece: b[x][y], Board: tmpB}
 				for z := 0; z < 8; z++ {
 					for w := 0; w < 8; w++ {
@@ -211,6 +205,32 @@ func inCheckmate(b Board, kingColor bool) bool {
 	}
 
 	return true
+}
+
+// #######################################################################
+// (Section 3) Helper Functions ##########################################
+// #######################################################################
+
+func inBounds(x int, y int) bool {
+	if x < 8 && y < 8 && x >= 0 && y >= 0 {
+		return true
+	}
+	return false
+}
+
+func getDirections(piece rune) [][2]int {
+	var directions = map[rune][][2]int{'P': {{0, 1}, {0, 2}, {1, 1}, {-1, 1}, {0, -1}, {0, -2}, {1, -1}, {-1, -1}},
+		'N': {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}},
+		'B': {{1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
+		'R': {{0, 1}, {0, -1}, {1, 0}, {-1, 0}},
+		'Q': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}},
+		'K': {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}}}
+
+	if unicode.IsLetter(piece) {
+		return directions[unicode.ToUpper(piece)]
+	} else {
+		return [][2]int{} // TODO Could return error here
+	}
 }
 
 func findKings(b Board) ([2]int, [2]int, error) {
