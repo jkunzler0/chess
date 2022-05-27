@@ -48,5 +48,32 @@ func TestMakeMove(t *testing.T) {
 }
 
 func TestInCheck(t *testing.T) {
-	inCheck()
+	var b Board
+	var err error
+
+	// White in check, black NOT in check
+	err = newBoard(&b, "5R2/8/4k3/8/8/r2K4/8/8")
+	if err != nil {
+		t.Error(err)
+	}
+	printBoard(&b)
+
+	var check [2]bool
+	check, err = inCheck(&b)
+	if check != [2]bool{true, false} {
+		t.Error(check, " failed inCheck: ", err)
+	}
+
+	var checkmate [2]bool
+	checkmate, err = inCheckmate(&b)
+	if checkmate != [2]bool{false, false} {
+		t.Error(check, " failed inCheckmate: ", err)
+	}
+
+	// White in checkmate, black in check
+	err = newBoard(&b, "4R3/8/4k3/8/8/r6K/8/6q1")
+	if err != nil {
+		t.Error(err)
+	}
+	printBoard(&b)
 }

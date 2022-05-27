@@ -72,6 +72,7 @@ func validateMove(m Move) (bool, error) {
 		}
 
 		return validateMoveJump(m)
+		// TODO add pawn promotion
 	case 'N', 'n':
 		return validateMoveJump(m)
 	case 'K', 'k':
@@ -143,9 +144,71 @@ func getDirections(piece rune) [][2]int {
 	}
 }
 
-// Return (white in check, black in check, white in checkmate, black in checkmate)
-func inCheck() (bool, bool, bool, bool) {
-	// check check
-	// if check, check checkmate
-	return true, false, true, false
+func inCheck(b *Board) ([2]bool, error) {
+
+	// Get location of both kings
+	wk, bk, err := findKings(b)
+	if err != nil {
+		return [2]bool{false, false}, fmt.Errorf("%w", err)
+	}
+
+	// Create moves against the kings
+	mbk := Move{X2: bk[0], Y2: bk[1], Color: White, EndPiece: 'k', Board: b}
+	mwk := Move{X2: wk[0], Y2: wk[1], Color: Black, EndPiece: 'K', Board: b}
+
+	// To determine if a kings is in check,
+	// attempt to validate moves of every pieces against the enemy king
+	var whiteCheck, blackCheck bool
+	for x := 0; x < 8; x++ {
+		for y := 0; y < 8; y++ {
+			if unicode.IsLetter(b[x][y]) {
+				if unicode.IsUpper(b[x][y]) && !blackCheck {
+					mbk.X1, mbk.Y1, mwk.StartPiece = x, y, b[x][y]
+					blackCheck, _ = validateMove(mbk)
+				} else if unicode.IsLower(b[x][y]) && !whiteCheck {
+					mwk.X1, mwk.Y1, mwk.StartPiece = x, y, b[x][y]
+					whiteCheck, _ = validateMove(mwk)
+				}
+			}
+
+		}
+	}
+
+	return [2]bool{whiteCheck, blackCheck}, nil
+}
+
+func inCheckmate(b *Board) ([2]bool, error) {
+
+	// Get location of both kings
+	// wk, bk, err := findKings(b)
+	// if err != nil {
+	// 	return [2]bool{false, false}, fmt.Errorf("%w", err)
+	// }
+
+	// 	// get list of valid moves for the king
+	// 	// for each valid move make a new board with the move
+	// 	// rerun incheck
+	return [2]bool{false, false}, nil
+}
+
+func findKings(b *Board) ([2]int, [2]int, error) {
+
+	var wk, bk [2]int
+	var wkFound, bkFound bool
+
+	for x := 0; x < 8; x++ {
+		for y := 0; y < 8; y++ {
+			if b[x][y] == 'K' {
+				wk = [2]int{x, y}
+				wkFound = true
+			} else if b[x][y] == 'k' {
+				bk = [2]int{x, y}
+				bkFound = true
+			}
+		}
+	}
+	if !wkFound || !bkFound {
+		return wk, bk, fmt.Errorf("board is missing kings")
+	}
+	return wk, bk, nil
 }
