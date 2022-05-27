@@ -17,7 +17,7 @@ type Move struct {
 	StartPiece     rune
 	EndPiece       rune
 	Color          bool
-	Board          *Board
+	Board          Board
 }
 
 func makeMove(b *Board, s string, color bool) error {
@@ -38,9 +38,9 @@ func makeMove(b *Board, s string, color bool) error {
 	}
 
 	// Create a Move struct, validate the move, and then make the move
-	m := Move{x1, y1, x2, y2, b[x1][y1], b[x2][y2], color, b}
+	m := Move{x1, y1, x2, y2, b[x1][y1], b[x2][y2], color, *b}
 	if ok, err := validateMove(m); ok {
-		m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
+		b[m.X1][m.Y1], b[m.X2][m.Y2] = '-', b[m.X1][m.Y1]
 	} else {
 		return fmt.Errorf("move is invalid: %w", err)
 	}
@@ -144,7 +144,7 @@ func getDirections(piece rune) [][2]int {
 	}
 }
 
-func inCheck(b *Board) ([2]bool, error) {
+func inCheck(b Board) ([2]bool, error) {
 
 	// Get location of both kings
 	wk, bk, err := findKings(b)
@@ -187,14 +187,14 @@ func inCheckmate(b Board, kingColor bool) bool {
 				(kingColor && unicode.IsUpper(b[x][y]) || !kingColor && unicode.IsLower(b[x][y])) {
 
 				fmt.Println(string(b[x][y]), kingColor)
-				m = Move{X1: x, Y1: y, Color: kingColor, StartPiece: b[x][y], Board: &tmpB}
+				m = Move{X1: x, Y1: y, Color: kingColor, StartPiece: b[x][y], Board: tmpB}
 				for z := 0; z < 8; z++ {
 					for w := 0; w < 8; w++ {
 						m.X2, m.Y2, m.EndPiece = z, w, b[z][w]
 						validMove, _ := validateMove(m)
 						if validMove {
-							m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
-							inCheck, _ := inCheck(&tmpB)
+							tmpB[m.X1][m.Y1], tmpB[m.X2][m.Y2] = '-', tmpB[m.X1][m.Y1]
+							inCheck, _ := inCheck(tmpB)
 							if kingColor && !inCheck[0] {
 								return false
 							} else if !kingColor && !inCheck[1] {
@@ -213,7 +213,7 @@ func inCheckmate(b Board, kingColor bool) bool {
 	return true
 }
 
-func findKings(b *Board) ([2]int, [2]int, error) {
+func findKings(b Board) ([2]int, [2]int, error) {
 
 	var wk, bk [2]int
 	var wkFound, bkFound bool

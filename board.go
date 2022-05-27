@@ -43,7 +43,7 @@ func newBoard(b *Board, pos string) error {
 	return nil
 }
 
-func printBoardBasic(b *Board) {
+func printBoardBasic(b Board) {
 	fmt.Println("   _A_B_C_D_E_F_G_H_")
 	for i := 0; i < 8; i++ {
 		fmt.Print(8-i, " |")
@@ -55,7 +55,7 @@ func printBoardBasic(b *Board) {
 	fmt.Println("  |_________________|")
 }
 
-func printBoard(b *Board) {
+func printBoard(b Board) {
 	var characters = map[rune]string{'P': "\u2659", 'p': "\u265F",
 		'N': "\u2658", 'n': "\u265E",
 		'B': "\u2657", 'b': "\u265D",

@@ -11,7 +11,7 @@ func TestMakeMove(t *testing.T) {
 	var b Board
 	var err error
 	defaultBoard(&b)
-	printBoard(&b)
+	printBoard(b)
 
 	// Series of valid moves
 	validMoves := []string{"a2a3", "e2 e4", "g1 f3", "d1 e2", "e2 b5", "e1d1", "f1 e2", "h1 e1"}
@@ -22,7 +22,7 @@ func TestMakeMove(t *testing.T) {
 			break
 		}
 	}
-	printBoard(&b)
+	printBoard(b)
 
 	// Series of invalid moves
 	invalidMoves := []string{"d4d5", "i2a3", "e4e4", "g8h6", "b5e2", "b1a3", "a3a2", "e2 e3", "e1 e3", "d1f1", "f3g4"}
@@ -43,7 +43,7 @@ func TestMakeMove(t *testing.T) {
 			break
 		}
 	}
-	printBoard(&b)
+	printBoard(b)
 
 }
 
@@ -58,8 +58,8 @@ func TestInCheck(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	printBoard(&b)
-	check, err = inCheck(&b)
+	printBoard(b)
+	check, err = inCheck(b)
 	if check != [2]bool{true, false} {
 		t.Error(check, " failed inCheck: ", err)
 	}
@@ -67,15 +67,15 @@ func TestInCheck(t *testing.T) {
 	if checkmate != false {
 		t.Error(checkmate, " failed inCheckmate: ")
 	}
-	printBoard(&b)
+	printBoard(b)
 
 	// White in checkmate, black in check
 	err = newBoard(&b, "4R3/6r1/3k4/8/8/5r1K/8/7q")
 	if err != nil {
 		t.Error(err)
 	}
-	printBoard(&b)
-	check, err = inCheck(&b)
+	printBoard(b)
+	check, err = inCheck(b)
 	if check != [2]bool{true, false} {
 		t.Error(check, " failed inCheck: ", err)
 	}
@@ -83,15 +83,15 @@ func TestInCheck(t *testing.T) {
 	if checkmate != true {
 		t.Error(checkmate, " failed inCheckmate: ")
 	}
-	printBoard(&b)
+	printBoard(b)
 
 	// White NOT in check, black in check
 	err = newBoard(&b, "4r2R/8/3K4/8/8/7k/8/6Q1")
 	if err != nil {
 		t.Error(err)
 	}
-	printBoard(&b)
-	check, err = inCheck(&b)
+	printBoard(b)
+	check, err = inCheck(b)
 	if check != [2]bool{false, true} {
 		t.Error(check, " failed inCheck: ", err)
 	}
@@ -99,5 +99,5 @@ func TestInCheck(t *testing.T) {
 	if checkmate != false {
 		t.Error(checkmate, " failed inCheckmate: ")
 	}
-	printBoard(&b)
+	printBoard(b)
 }
