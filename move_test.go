@@ -50,6 +50,8 @@ func TestMakeMove(t *testing.T) {
 func TestInCheck(t *testing.T) {
 	var b Board
 	var err error
+	var check [2]bool
+	var checkmate bool
 
 	// White in check, black NOT in check
 	err = newBoard(&b, "5R2/8/4k3/8/8/r2K4/8/8")
@@ -57,23 +59,45 @@ func TestInCheck(t *testing.T) {
 		t.Error(err)
 	}
 	printBoard(&b)
-
-	var check [2]bool
 	check, err = inCheck(&b)
 	if check != [2]bool{true, false} {
 		t.Error(check, " failed inCheck: ", err)
 	}
-
-	var checkmate [2]bool
-	checkmate, err = inCheckmate(&b)
-	if checkmate != [2]bool{false, false} {
-		t.Error(check, " failed inCheckmate: ", err)
+	checkmate = inCheckmate(b, White)
+	if checkmate != false {
+		t.Error(checkmate, " failed inCheckmate: ")
 	}
+	printBoard(&b)
 
 	// White in checkmate, black in check
-	err = newBoard(&b, "4R3/8/4k3/8/8/r6K/8/6q1")
+	err = newBoard(&b, "4R3/6r1/3k4/8/8/5r1K/8/7q")
 	if err != nil {
 		t.Error(err)
+	}
+	printBoard(&b)
+	check, err = inCheck(&b)
+	if check != [2]bool{true, false} {
+		t.Error(check, " failed inCheck: ", err)
+	}
+	checkmate = inCheckmate(b, White)
+	if checkmate != true {
+		t.Error(checkmate, " failed inCheckmate: ")
+	}
+	printBoard(&b)
+
+	// White NOT in check, black in check
+	err = newBoard(&b, "4r2R/8/3K4/8/8/7k/8/6Q1")
+	if err != nil {
+		t.Error(err)
+	}
+	printBoard(&b)
+	check, err = inCheck(&b)
+	if check != [2]bool{false, true} {
+		t.Error(check, " failed inCheck: ", err)
+	}
+	checkmate = inCheckmate(b, Black)
+	if checkmate != false {
+		t.Error(checkmate, " failed inCheckmate: ")
 	}
 	printBoard(&b)
 }

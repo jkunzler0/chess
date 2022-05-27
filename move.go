@@ -163,32 +163,54 @@ func inCheck(b *Board) ([2]bool, error) {
 		for y := 0; y < 8; y++ {
 			if unicode.IsLetter(b[x][y]) {
 				if unicode.IsUpper(b[x][y]) && !blackCheck {
-					mbk.X1, mbk.Y1, mwk.StartPiece = x, y, b[x][y]
+					mbk.X1, mbk.Y1, mbk.StartPiece = x, y, b[x][y]
 					blackCheck, _ = validateMove(mbk)
 				} else if unicode.IsLower(b[x][y]) && !whiteCheck {
 					mwk.X1, mwk.Y1, mwk.StartPiece = x, y, b[x][y]
 					whiteCheck, _ = validateMove(mwk)
 				}
 			}
-
 		}
 	}
 
 	return [2]bool{whiteCheck, blackCheck}, nil
 }
 
-func inCheckmate(b *Board) ([2]bool, error) {
+func inCheckmate(b Board, kingColor bool) bool {
 
-	// Get location of both kings
-	// wk, bk, err := findKings(b)
-	// if err != nil {
-	// 	return [2]bool{false, false}, fmt.Errorf("%w", err)
-	// }
+	var m Move
+	tmpB := b
 
-	// 	// get list of valid moves for the king
-	// 	// for each valid move make a new board with the move
-	// 	// rerun incheck
-	return [2]bool{false, false}, nil
+	for x := 0; x < 8; x++ {
+		for y := 0; y < 8; y++ {
+			if unicode.IsLetter(b[x][y]) &&
+				(kingColor && unicode.IsUpper(b[x][y]) || !kingColor && unicode.IsLower(b[x][y])) {
+
+				fmt.Println(string(b[x][y]), kingColor)
+				m = Move{X1: x, Y1: y, Color: kingColor, StartPiece: b[x][y], Board: &tmpB}
+				for z := 0; z < 8; z++ {
+					for w := 0; w < 8; w++ {
+						m.X2, m.Y2, m.EndPiece = z, w, b[z][w]
+						validMove, _ := validateMove(m)
+						if validMove {
+							m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
+							inCheck, _ := inCheck(&tmpB)
+							if kingColor && !inCheck[0] {
+								return false
+							} else if !kingColor && !inCheck[1] {
+								return false
+							} else {
+								// Reset temp board
+								tmpB = b
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return true
 }
 
 func findKings(b *Board) ([2]int, [2]int, error) {
