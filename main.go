@@ -16,11 +16,9 @@ func readMove() (string, error) {
 		fmt.Println("An error occured while reading input. Please try again", err)
 		return input, fmt.Errorf("cannot read move: %w", err)
 	}
-	// fmt.Println(input)
 
 	// remove the delimeter from the string
-	input = strings.TrimSuffix(input, "\n")
-	// fmt.Println(input)
+	input = strings.TrimSuffix(input, "\r\n")
 	return input, nil
 }
 
@@ -29,9 +27,6 @@ func turn(b *Board, color bool) bool {
 	for {
 		move, err := readMove()
 		if err == nil {
-			fmt.Println(move)
-			fmt.Println(move == "q")
-			move = "quit"
 			if move == "quit" || move == "q" {
 				return false
 			}
