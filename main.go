@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-var playing bool
-var move string
-
 func readMove() (string, error) {
 	fmt.Print("Enter move: ")
 	reader := bufio.NewReader(os.Stdin)
@@ -19,6 +16,7 @@ func readMove() (string, error) {
 		fmt.Println("An error occured while reading input. Please try again", err)
 		return input, fmt.Errorf("cannot read move: %w", err)
 	}
+	// fmt.Println(input)
 
 	// remove the delimeter from the string
 	input = strings.TrimSuffix(input, "\n")
@@ -26,34 +24,49 @@ func readMove() (string, error) {
 	return input, nil
 }
 
-func turn(p int) {
-	move, _ := readMove()
+func turn(b *Board, color bool) bool {
 
-	fmt.Println(move)
-	// if p == 1 {
-	// 	makeMove(board1, move)
-	// 	makeMove(board2, flipMove(move))
-	// } else {
-	// 	makeMove(board2, move)
-	// 	makeMove(board1, flipMove(move))
-	// }
+	for {
+		move, err := readMove()
+		if err == nil {
+			fmt.Println(move)
+			fmt.Println(move == "q")
+			move = "quit"
+			if move == "quit" || move == "q" {
+				return false
+			}
+			err = makeMove(b, move, color)
+			if err == nil {
+				printBoard(*b)
+				return true
+			}
+		}
+		fmt.Println(err)
+	}
 }
 
 func main() {
 
-	// board1 = newBoard()
-	// board2 = newBoard()
+	fmt.Println("Chess (\"q\" or \"quit\" to quit)")
 
-	// playing = true
+	var board Board
+	err := defaultBoard(&board)
+	if err != nil {
+		fmt.Errorf("%w", err)
+	}
 
-	// for playing {
-	// 	turn(1)
+	playing := true
 
-	// 	if !playing {
-	// 		break
-	// 	}
+	for playing {
 
-	// 	turn(2)
-	// }
+		playing = turn(&board, White)
 
+		if !playing {
+			break
+		}
+
+		playing = turn(&board, Black)
+	}
+
+	fmt.Println("Game End")
 }
