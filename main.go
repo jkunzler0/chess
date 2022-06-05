@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -32,7 +33,7 @@ func turn(b *Board, color bool) bool {
 		// Read Move
 		move, err = readMove()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Error: ", err)
 			fmt.Println("Please input a valid move:")
 			continue
 		}
@@ -42,14 +43,14 @@ func turn(b *Board, color bool) bool {
 		// Verify and Make Move
 		err = makeMove(b, move, color)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Error: ", err)
 			fmt.Println("Please input a valid move:")
 			continue
 		}
 		// Report Check/Checkmate and if Game is Complete
 		check, err = inCheck(*b)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Error: ", err)
 			fmt.Println("Please input a valid move:")
 			continue
 		}
@@ -75,31 +76,57 @@ func turn(b *Board, color bool) bool {
 	}
 }
 
-func main() {
+func hotseatGame() {
 
-	fmt.Println("---- CHESS -----")
+	fmt.Println("----- Hotsteat Chess Game -----")
+	fmt.Println("For a p2p game, see `./chess -help`.")
 	fmt.Println("Instructions:")
-	fmt.Println("Chess (\"q\" or \"quit\" to quit)")
+	fmt.Println("Type moves using the notation, L#L#, in which L is a letter and # is a number.")
+	fmt.Println("Type \"q\" or \"quit\" to quit.")
 
 	var board Board
 	err := defaultBoard(&board)
 	if err != nil {
-		fmt.Errorf("%w", err)
+		panic(err)
 	}
 	printBoard(board)
 
 	playing := true
-
 	for playing {
-
+		fmt.Println("White's Turn")
 		playing = turn(&board, White)
-
 		if !playing {
 			break
 		}
-
+		fmt.Println("Black's Turn")
 		playing = turn(&board, Black)
 	}
-
 	fmt.Println("Game End")
+}
+
+func p2pGame(rw *bufio.ReadWriter) {
+
+	stdReader := bufio.NewReader(os.Stdin)
+	go writeStream(rw, stdReader)
+	go readStream(rw)
+
+}
+
+func main() {
+	help := flag.Bool("help", false, "Display Help")
+	cfg := parseFlags()
+
+	if *help {
+		fmt.Printf("Chess!\n")
+		fmt.Printf("Usage:\nRun './chess' for local hotseat game\nor\nRun './chess -p2p' to connect to and play against a local peer\n")
+		os.Exit(0)
+	}
+
+	if !cfg.p2p {
+		hotseatGame()
+		return
+	}
+
+	p2pSetup(cfg)
+
 }
