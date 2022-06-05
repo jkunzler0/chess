@@ -10,7 +10,7 @@ const White bool = true
 const Black bool = false
 
 // type Piece rune
-// TODO replace StartPiece and EndPiece with type Piece pointers
+// TODO replace StartPiece and EndPiece with type Piece pointers?
 
 type Move struct {
 	X1, Y1, X2, Y2 int
@@ -63,6 +63,8 @@ func validateMove(m Move) (bool, error) {
 	}
 
 	// Check rules for specific pieces
+	var valid bool
+	var err error
 	switch m.StartPiece {
 	case 'P', 'p':
 
@@ -75,31 +77,34 @@ func validateMove(m Move) (bool, error) {
 			return false, fmt.Errorf("pawn is going the wrong way")
 		}
 
-		return validateMoveJump(m)
+		valid, err = validateMoveJump(m)
 		// TODO add pawn promotion
 	case 'N', 'n':
-		return validateMoveJump(m)
+		valid, err = validateMoveJump(m)
 	case 'K', 'k':
-		// Restrict movement into checkmate
-		if valid, err := validateMoveJump(m); valid {
-			m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
-			check, _ := inCheck(m.Board)
-			if unicode.IsUpper(m.StartPiece) {
-				return !check[0], fmt.Errorf("cannot move king into check")
-			} else {
-				return !check[1], fmt.Errorf("cannot move king into check")
-			}
-		} else {
-			return valid, err
-		}
+		valid, err = validateMoveJump(m)
 	case 'Q', 'B', 'q', 'b':
-		return validateMoveCrawl(m)
+		valid, err = validateMoveCrawl(m)
 	case 'R', 'r':
-		return validateMoveCrawl(m)
+		valid, err = validateMoveCrawl(m)
 		// TODO Add castling
+	default:
+		return false, fmt.Errorf("not a valid piece type")
+	}
+	if !valid {
+		return valid, err
 	}
 
-	return false, fmt.Errorf("not a valid piece type")
+	// Verify that this move does NOT put our king into check
+	m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
+	check, _ := inCheck(m.Board)
+	if unicode.IsUpper(m.StartPiece) && check[0] {
+		return !check[0], fmt.Errorf("cannot put your own king into check")
+	} else if unicode.IsLower(m.StartPiece) && check[1] {
+		return !check[1], fmt.Errorf("cannot put your own king into check")
+	}
+
+	return true, nil
 }
 
 // Pawns, Knights, and Kings jump to a location (as opposed to crawling/sliding)
