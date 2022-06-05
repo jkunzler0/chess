@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func readMove() (string, error) {
+func readYourMove() (string, error) {
 	fmt.Print("Enter move: ")
 	reader := bufio.NewReader(os.Stdin)
 	// ReadString will block until the delimiter is entered
@@ -23,22 +23,22 @@ func readMove() (string, error) {
 	return input, nil
 }
 
-func turn(b *Board, color bool) bool {
+func yourTurn(b *Board, color bool) (bool, string) {
 
 	var err error
 	var move string
-	var check [2]bool
+	var checkmate bool
 
 	for {
 		// Read Move
-		move, err = readMove()
+		move, err = readYourMove()
 		if err != nil {
 			fmt.Println("Error: ", err)
 			fmt.Println("Please input a valid move:")
 			continue
 		}
 		if move == "quit" || move == "q" {
-			return false
+			return false, move
 		}
 		// Verify and Make Move
 		err = makeMove(b, move, color)
@@ -48,41 +48,22 @@ func turn(b *Board, color bool) bool {
 			continue
 		}
 		// Report Check/Checkmate and if Game is Complete
-		check, err = inCheck(*b)
+		checkmate, err = reportCheckAndCheckmate(*b)
 		if err != nil {
 			fmt.Println("Error: ", err)
 			fmt.Println("Please input a valid move:")
 			continue
 		}
-		if check[0] {
-			if inCheckmate(*b, White) {
-				printBoard(*b)
-				fmt.Println("White is in checkmate!")
-				fmt.Println("Black wins!")
-				return false
-			}
-			fmt.Println("White is in check!")
-		} else if check[1] {
-			if inCheckmate(*b, Black) {
-				printBoard(*b)
-				fmt.Println("Black is in checkmate!")
-				fmt.Println("White wins!")
-				return false
-			}
-			fmt.Println("Black is in check!")
-		}
+
 		printBoard(*b)
-		return true
+		return !checkmate, move
 	}
 }
 
 func hotseatGame() {
 
 	fmt.Println("----- Hotsteat Chess Game -----")
-	fmt.Println("For a p2p game, see `./chess -help`.")
-	fmt.Println("Instructions:")
-	fmt.Println("Type moves using the notation, L#L#, in which L is a letter and # is a number.")
-	fmt.Println("Type \"q\" or \"quit\" to quit.")
+	fmt.Println("For a p2p game or game instructions, see `./chess -help`.")
 
 	var board Board
 	err := defaultBoard(&board)
@@ -91,25 +72,76 @@ func hotseatGame() {
 	}
 	printBoard(board)
 
-	playing := true
+	playing, color := true, true
 	for playing {
-		fmt.Println("White's Turn")
-		playing = turn(&board, White)
-		if !playing {
-			break
+		if color {
+			fmt.Println("White's Turn")
+		} else {
+			fmt.Println("Black's Turn")
 		}
-		fmt.Println("Black's Turn")
-		playing = turn(&board, Black)
+		playing, _ = yourTurn(&board, color)
+		color = !color
 	}
 	fmt.Println("Game End")
 }
 
-func p2pGame(rw *bufio.ReadWriter) {
+func theirTurn(b *Board, color bool, move string) bool {
 
-	stdReader := bufio.NewReader(os.Stdin)
-	go writeStream(rw, stdReader)
-	go readStream(rw)
+	var checkmate bool
 
+	if move == "quit" || move == "q" {
+		return false
+	}
+	// Verify and Make Move
+	err := makeMove(b, move, color)
+	if err != nil {
+		fmt.Println("They gave you a bad input...")
+		panic(err)
+	}
+	// Report Check/Checkmate and if Game is Complete
+	checkmate, err = reportCheckAndCheckmate(*b)
+	if err != nil {
+		fmt.Println("They gave you a bad input...")
+		panic(err)
+	}
+
+	printBoard(*b)
+	return !checkmate
+
+}
+
+func p2pGame(rw *bufio.ReadWriter, color bool) {
+
+	fmt.Println("----- P2P Chess Game -----")
+	fmt.Println("For a hotseat game or game instructions, see `./chess -help`.")
+
+	var board Board
+	err := defaultBoard(&board)
+	if err != nil {
+		panic(err)
+	}
+	printBoard(board)
+
+	var move string
+	playing := true
+	for playing {
+		if color {
+			fmt.Println("Your Turn")
+			// Make your turn locally
+			playing, move = yourTurn(&board, color)
+			// Send your move to your opponent
+			writeStream(rw, move)
+		} else {
+			fmt.Println("Opponents Turn")
+			// Wait for your opponent to send their move
+			move = readStream(rw)
+			// Make your opponent's move locally
+			playing = theirTurn(&board, color, move)
+			fmt.Println(move)
+		}
+		color = !color
+	}
+	fmt.Println("Game End")
 }
 
 func main() {
@@ -117,8 +149,9 @@ func main() {
 	cfg := parseFlags()
 
 	if *help {
-		fmt.Printf("Chess!\n")
-		fmt.Printf("Usage:\nRun './chess' for local hotseat game\nor\nRun './chess -p2p' to connect to and play against a local peer\n")
+		fmt.Printf("Chess!\nUsage:\nRun './chess' for local hotseat game\nor\nRun './chess -p2p' to connect to and play against a local peer\n")
+		fmt.Printf("Game Instructions:\nType moves using the notation, L#L#, in which L is a letter and # is a number.")
+		fmt.Println("Type \"q\" or \"quit\" to quit.")
 		os.Exit(0)
 	}
 

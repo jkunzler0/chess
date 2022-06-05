@@ -70,7 +70,7 @@ func p2pSetup(cfg *config) {
 
 		// Create a buffer stream for non blocking read and write
 		rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-		p2pGame(rw)
+		p2pGame(rw, Black)
 	}
 
 	// Wait here for now
@@ -83,44 +83,33 @@ func p2pSetup(cfg *config) {
 
 func handleStream(stream network.Stream) {
 	fmt.Println("Got a new stream!")
-
 	// Create a buffer stream for non blocking read and write
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	p2pGame(rw)
-
+	p2pGame(rw, White)
 }
 
-func readStream(rw *bufio.ReadWriter) {
-	fmt.Println("ReadStart")
-	for {
-		str, err := rw.ReadString('\n')
-		fmt.Println("Has Read")
-		if err != nil {
-			fmt.Println("Error reading from buffer")
-			panic(err)
-		}
-		if str == "" {
-			fmt.Println("empty")
-			return
-		}
-		if str != "\n" {
-			fmt.Println("From: ", str)
-		}
-
-	}
-}
-
-func writeStream(rw *bufio.ReadWriter, stdReader *bufio.Reader) {
-
-	fmt.Print("> ")
-	// Read from stdin
-	sendData, err := stdReader.ReadString('\n')
+func readStream(rw *bufio.ReadWriter) string {
+	fmt.Println("Waiting for opponent...")
+	// ReadString will block until the delimiter is entered
+	// We expect a correctly formated input since they already processed their own move
+	// 		So if its not a valid input, just panic for now
+	//		TODO can be to ask them again for a valid input
+	move, err := rw.ReadString('\n')
 	if err != nil {
-		fmt.Println("Error reading from stdin")
+		fmt.Println("Error reading from buffer")
 		panic(err)
 	}
-	// Write to rw
-	_, err = rw.WriteString(fmt.Sprintf("%s\n", sendData))
+	if move == "" || move == "\n" {
+		fmt.Println("Empty or Broken ")
+		panic(err)
+	}
+	fmt.Println("Their move: ", move)
+	return move
+}
+
+func writeStream(rw *bufio.ReadWriter, move string) {
+	// Write to stream
+	_, err := rw.WriteString(fmt.Sprintf("%s\n", move))
 	if err != nil {
 		fmt.Println("Error writing to buffer")
 		panic(err)

@@ -212,6 +212,34 @@ func inCheckmate(b Board, kingColor bool) bool {
 	return true
 }
 
+// Prints if any check or checkmate
+// Return true if any checkmate
+func reportCheckAndCheckmate(b Board) (bool, error) {
+
+	check, err := inCheck(b)
+	if err != nil {
+		return false, err
+	}
+	if check[0] {
+		if inCheckmate(b, White) {
+			printBoard(b)
+			fmt.Println("White is in checkmate!")
+			fmt.Println("Black wins!")
+			return true, nil
+		}
+		fmt.Println("White is in check!")
+	} else if check[1] {
+		if inCheckmate(b, Black) {
+			printBoard(b)
+			fmt.Println("Black is in checkmate!")
+			fmt.Println("White wins!")
+			return true, nil
+		}
+		fmt.Println("Black is in check!")
+	}
+	return false, nil
+}
+
 // #######################################################################
 // (Section 3) Helper Functions ##########################################
 // #######################################################################
