@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"strings"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -100,9 +101,12 @@ func readStream(rw *bufio.ReadWriter) string {
 		panic(err)
 	}
 	if move == "" || move == "\n" {
-		fmt.Println("Empty or Broken ")
+		fmt.Println("Empty buffer")
 		panic(err)
 	}
+	// Remove the delimeter from the string
+	move = strings.TrimSuffix(move, "\n")
+	// move = strings.ReplaceAll(move, " ", "")
 	fmt.Println("Their move: ", move)
 	return move
 }

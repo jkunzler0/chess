@@ -18,7 +18,7 @@ func readYourMove() (string, error) {
 		return input, fmt.Errorf("cannot read move: %w", err)
 	}
 
-	// remove the delimeter from the string
+	// Remove the delimeter from the string
 	input = strings.TrimSuffix(input, "\r\n")
 	return input, nil
 }
@@ -47,6 +47,7 @@ func yourTurn(b *Board, color bool) (bool, string) {
 			fmt.Println("Please input a valid move:")
 			continue
 		}
+		printBoard(*b)
 		// Report Check/Checkmate and if Game is Complete
 		checkmate, err = reportCheckAndCheckmate(*b)
 		if err != nil {
@@ -54,8 +55,6 @@ func yourTurn(b *Board, color bool) (bool, string) {
 			fmt.Println("Please input a valid move:")
 			continue
 		}
-
-		printBoard(*b)
 		return !checkmate, move
 	}
 }
@@ -95,22 +94,20 @@ func theirTurn(b *Board, color bool, move string) bool {
 	// Verify and Make Move
 	err := makeMove(b, move, color)
 	if err != nil {
-		fmt.Println("They gave you a bad input...")
+		fmt.Println("They gave you a bad input... (", move, ")")
 		panic(err)
 	}
+	printBoard(*b)
 	// Report Check/Checkmate and if Game is Complete
 	checkmate, err = reportCheckAndCheckmate(*b)
 	if err != nil {
-		fmt.Println("They gave you a bad input...")
+		fmt.Println("They gave you a bad input... (", move, ")")
 		panic(err)
 	}
-
-	printBoard(*b)
 	return !checkmate
-
 }
 
-func p2pGame(rw *bufio.ReadWriter, color bool) {
+func p2pGame(rw *bufio.ReadWriter, yourColor bool) {
 
 	fmt.Println("----- P2P Chess Game -----")
 	fmt.Println("For a hotseat game or game instructions, see `./chess -help`.")
@@ -123,12 +120,13 @@ func p2pGame(rw *bufio.ReadWriter, color bool) {
 	printBoard(board)
 
 	var move string
+	turn := yourColor
 	playing := true
 	for playing {
-		if color {
+		if turn {
 			fmt.Println("Your Turn")
 			// Make your turn locally
-			playing, move = yourTurn(&board, color)
+			playing, move = yourTurn(&board, yourColor)
 			// Send your move to your opponent
 			writeStream(rw, move)
 		} else {
@@ -136,12 +134,13 @@ func p2pGame(rw *bufio.ReadWriter, color bool) {
 			// Wait for your opponent to send their move
 			move = readStream(rw)
 			// Make your opponent's move locally
-			playing = theirTurn(&board, color, move)
+			playing = theirTurn(&board, !yourColor, move)
 			fmt.Println(move)
 		}
-		color = !color
+		turn = !turn
 	}
 	fmt.Println("Game End")
+	os.Exit(0)
 }
 
 func main() {
