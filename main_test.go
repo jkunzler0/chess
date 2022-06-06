@@ -14,4 +14,6 @@ Create test for hotseat
 Stop other peers from connecting to ongoing game
 Create test for p2p
 Start work on database
+Cleanup and packaging files
+Encryption
 */
