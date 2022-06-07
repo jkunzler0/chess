@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"strings"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -21,9 +22,12 @@ import (
 // #######################################################################
 
 var ghNotifier chan<- *GameHello
+var gh GameHello
 
 type GameHello struct {
-	Rw    *bufio.ReadWriter
+	// Rw    *bufio.ReadWriter
+	RCh   chan string
+	WCh   chan string
 	White bool
 }
 
@@ -37,7 +41,8 @@ type P2pConfig struct {
 func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 
 	ghNotifier = ghn
-	fmt.Printf("[*] Listening on: %s with port: %d\n", cfg.ListenHost, cfg.ListenPort)
+
+	// fmt.Printf("[*] Listening on: %s with port: %d\n", cfg.ListenHost, cfg.ListenPort)
 
 	ctx := context.Background()
 	r := rand.Reader
@@ -63,7 +68,7 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 	// Set a stream handler that will be called when another peer initiates a connection with this peer
 	host.SetStreamHandler(protocol.ID(cfg.ProtocolID), handleStream)
 
-	fmt.Printf("\n[*] Your Multiaddress Is: /ip4/%s/tcp/%v/p2p/%s\n", cfg.ListenHost, cfg.ListenPort, host.ID().Pretty())
+	// fmt.Printf("\n[*] Your Multiaddress Is: /ip4/%s/tcp/%v/p2p/%s\n", cfg.ListenHost, cfg.ListenPort, host.ID().Pretty())
 
 	// Setup MDNS to discover other peers in the network
 	peerChan := initMDNS(host, cfg.GroupID)
@@ -74,8 +79,10 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 	}
 
 	// If hosting, return to main and wait for a peer
+	// Host will play as white
 	if peer.ID == host.ID() {
 		fmt.Println("Waiting for a peer...")
+		gh.White = true
 		return nil
 	}
 
@@ -93,16 +100,9 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 		fmt.Println("Stream open failed", err)
 		return err
 	}
-	fmt.Println("Connected to:", peer)
-	if peer.ID == host.ID() {
-		return nil
-	}
 
-	// Create a buffer stream for non blocking read and write
-	ghNotifier <- &GameHello{
-		bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream)),
-		false,
-	}
+	fmt.Println("Connected to:", peer)
+	handleStream(stream)
 
 	return nil
 }
@@ -113,48 +113,60 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 
 func handleStream(stream network.Stream) {
 	fmt.Println("Got a new stream!")
+
 	// Create a buffer stream for non blocking read and write
-	ghNotifier <- &GameHello{
-		bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream)),
-		true,
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	gh.RCh, gh.WCh = make(chan string, 1), make(chan string, 1)
+	go readStream(rw, gh.RCh)
+	go writeStream(rw, gh.WCh)
+	ghNotifier <- &GameHello{gh.RCh, gh.WCh, gh.White}
+}
+
+// Read from the connected peer and send to rch
+func readStream(rw *bufio.ReadWriter, ch chan<- string) {
+	// We expect a correctly formated input since they already processed their own move
+	// 		So if its not a valid input, just panic for now
+	//		TODO can be to ask them again for a valid input
+	for {
+		// Block here and wait for peer
+		move, err := rw.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading from buffer")
+			panic(err)
+		}
+		if move == "" || move == "\n" {
+			fmt.Println("Empty buffer")
+			panic(err)
+		}
+		// Remove the delimeter from the string
+		move = strings.TrimSuffix(move, "\n")
+		// Send their move to the game / main thread
+		ch <- move
 	}
 }
 
-// func ReadStream(rw *bufio.ReadWriter) string {
-// 	fmt.Println("Waiting for opponent...")
-// 	// ReadString will block until the delimiter is entered
-// 	// We expect a correctly formated input since they already processed their own move
-// 	// 		So if its not a valid input, just panic for now
-// 	//		TODO can be to ask them again for a valid input
-// 	move, err := rw.ReadString('\n')
-// 	if err != nil {
-// 		fmt.Println("Error reading from buffer")
-// 		panic(err)
-// 	}
-// 	if move == "" || move == "\n" {
-// 		fmt.Println("Empty buffer")
-// 		panic(err)
-// 	}
-// 	// Remove the delimeter from the string
-// 	move = strings.TrimSuffix(move, "\n")
-// 	// move = strings.ReplaceAll(move, " ", "")
-// 	fmt.Println("Their move: ", move)
-// 	return move
-// }
+// Write to the connected peer from wch
+func writeStream(rw *bufio.ReadWriter, ch <-chan string) {
 
-// func WriteStream(rw *bufio.ReadWriter, move string) {
-// 	// Write to stream
-// 	_, err := rw.WriteString(fmt.Sprintf("%s\n", move))
-// 	if err != nil {
-// 		fmt.Println("Error writing to buffer")
-// 		panic(err)
-// 	}
-// 	err = rw.Flush()
-// 	if err != nil {
-// 		fmt.Println("Error flushing buffer")
-// 		panic(err)
-// 	}
-// }
+	for {
+		// Block here until our move is sent on ch
+		move, ok := <-ch
+		if !ok {
+			// If the channel has been closed, exit this go routine
+			return
+		}
+		_, err := rw.WriteString(fmt.Sprintf("%s\n", move))
+		if err != nil {
+			fmt.Println("Error writing to buffer")
+			panic(err)
+		}
+		err = rw.Flush()
+		if err != nil {
+			fmt.Println("Error flushing buffer")
+			panic(err)
+		}
+	}
+}
 
 // #######################################################################
 // (Section 3) MDNS Setup ################################################

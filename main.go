@@ -36,6 +36,6 @@ func main() {
 	// Block here until we connect to a peer
 	// On connection to a peer, we receive the game hello on ch
 	gh := <-ch
-	game.P2pGame(gh.Rw, gh.White)
+	game.P2pGame(gh.RCh, gh.WCh, gh.White)
 
 }

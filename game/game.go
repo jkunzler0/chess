@@ -106,7 +106,7 @@ func theirTurn(b *Board, color bool, move string) bool {
 	return !checkmate
 }
 
-func P2pGame(rw *bufio.ReadWriter, yourColor bool) {
+func P2pGame(rch <-chan string, wch chan<- string, yourColor bool) {
 
 	fmt.Println("----- P2P Chess Game -----")
 	fmt.Println("For a hotseat game or game instructions, see `./chess -help`.")
@@ -127,53 +127,17 @@ func P2pGame(rw *bufio.ReadWriter, yourColor bool) {
 			// Make your turn locally
 			playing, move = yourTurn(&board, yourColor)
 			// Send your move to your opponent
-			WriteStream(rw, move)
+			wch <- move
 		} else {
 			fmt.Println("Opponents Turn")
-			// Wait for your opponent to send their move
-			move = ReadStream(rw)
+			// Block until your opponent sends their move
+			move = <-rch
 			// Make your opponent's move locally
 			playing = theirTurn(&board, !yourColor, move)
-			fmt.Println(move)
+			fmt.Println("Their move: ", move)
 		}
 		turn = !turn
 	}
 	fmt.Println("Game End")
 	os.Exit(0)
-}
-
-func ReadStream(rw *bufio.ReadWriter) string {
-	fmt.Println("Waiting for opponent...")
-	// ReadString will block until the delimiter is entered
-	// We expect a correctly formated input since they already processed their own move
-	// 		So if its not a valid input, just panic for now
-	//		TODO can be to ask them again for a valid input
-	move, err := rw.ReadString('\n')
-	if err != nil {
-		fmt.Println("Error reading from buffer")
-		panic(err)
-	}
-	if move == "" || move == "\n" {
-		fmt.Println("Empty buffer")
-		panic(err)
-	}
-	// Remove the delimeter from the string
-	move = strings.TrimSuffix(move, "\n")
-	// move = strings.ReplaceAll(move, " ", "")
-	fmt.Println("Their move: ", move)
-	return move
-}
-
-func WriteStream(rw *bufio.ReadWriter, move string) {
-	// Write to stream
-	_, err := rw.WriteString(fmt.Sprintf("%s\n", move))
-	if err != nil {
-		fmt.Println("Error writing to buffer")
-		panic(err)
-	}
-	err = rw.Flush()
-	if err != nil {
-		fmt.Println("Error flushing buffer")
-		panic(err)
-	}
 }
