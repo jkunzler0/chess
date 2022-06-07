@@ -20,22 +20,22 @@ func main() {
 		os.Exit(0)
 	}
 
+	// If p2p is off, start a hotseat game
 	if !cfg.p2p {
 		game.HotseatGame()
 		return
 	}
 
-	ch := make(chan *p2p.GameHello)
+	// Setup p2p, passing its config and a channel to hear back from
+	ch := make(chan *p2p.GameHello, 1)
 	err := p2p.P2pSetup(p2pCfg, ch)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Start Waiting")
+	// Block here until we connect to a peer
+	// On connection to a peer, we receive the game hello on ch
 	gh := <-ch
-	fmt.Println("STOP Waiting")
 	game.P2pGame(gh.Rw, gh.White)
-
-	select {}
 
 }

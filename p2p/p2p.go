@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"strings"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -65,7 +64,6 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 	host.SetStreamHandler(protocol.ID(cfg.ProtocolID), handleStream)
 
 	fmt.Printf("\n[*] Your Multiaddress Is: /ip4/%s/tcp/%v/p2p/%s\n", cfg.ListenHost, cfg.ListenPort, host.ID().Pretty())
-	fmt.Println(host.ID())
 
 	// Setup MDNS to discover other peers in the network
 	peerChan := initMDNS(host, cfg.GroupID)
@@ -75,13 +73,13 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 		panic("No peers found")
 	}
 
-	// If hosting return to main and wait for a peer
+	// If hosting, return to main and wait for a peer
 	if peer.ID == host.ID() {
+		fmt.Println("Waiting for a peer...")
 		return nil
 	}
 
 	fmt.Printf("Found peer: %+v, connecting\n", peer)
-
 	if err := host.Connect(ctx, peer); err != nil {
 		fmt.Println("Connection failed:", err)
 		// TODO: retry on error
@@ -95,20 +93,18 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 		fmt.Println("Stream open failed", err)
 		return err
 	}
-
 	fmt.Println("Connected to:", peer)
+	if peer.ID == host.ID() {
+		return nil
+	}
 
 	// Create a buffer stream for non blocking read and write
 	ghNotifier <- &GameHello{
 		bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream)),
 		false,
 	}
-	// p2pGame(rw, Black)
-	fmt.Println("End of p2p")
-	return nil
 
-	// Wait here for now
-	// select {}
+	return nil
 }
 
 // #######################################################################
@@ -122,45 +118,43 @@ func handleStream(stream network.Stream) {
 		bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream)),
 		true,
 	}
-	// p2pGame(rw, White)
-	// fmt.Println(stream)
 }
 
-func ReadStream(rw *bufio.ReadWriter) string {
-	fmt.Println("Waiting for opponent...")
-	// ReadString will block until the delimiter is entered
-	// We expect a correctly formated input since they already processed their own move
-	// 		So if its not a valid input, just panic for now
-	//		TODO can be to ask them again for a valid input
-	move, err := rw.ReadString('\n')
-	if err != nil {
-		fmt.Println("Error reading from buffer")
-		panic(err)
-	}
-	if move == "" || move == "\n" {
-		fmt.Println("Empty buffer")
-		panic(err)
-	}
-	// Remove the delimeter from the string
-	move = strings.TrimSuffix(move, "\n")
-	// move = strings.ReplaceAll(move, " ", "")
-	fmt.Println("Their move: ", move)
-	return move
-}
+// func ReadStream(rw *bufio.ReadWriter) string {
+// 	fmt.Println("Waiting for opponent...")
+// 	// ReadString will block until the delimiter is entered
+// 	// We expect a correctly formated input since they already processed their own move
+// 	// 		So if its not a valid input, just panic for now
+// 	//		TODO can be to ask them again for a valid input
+// 	move, err := rw.ReadString('\n')
+// 	if err != nil {
+// 		fmt.Println("Error reading from buffer")
+// 		panic(err)
+// 	}
+// 	if move == "" || move == "\n" {
+// 		fmt.Println("Empty buffer")
+// 		panic(err)
+// 	}
+// 	// Remove the delimeter from the string
+// 	move = strings.TrimSuffix(move, "\n")
+// 	// move = strings.ReplaceAll(move, " ", "")
+// 	fmt.Println("Their move: ", move)
+// 	return move
+// }
 
-func WriteStream(rw *bufio.ReadWriter, move string) {
-	// Write to stream
-	_, err := rw.WriteString(fmt.Sprintf("%s\n", move))
-	if err != nil {
-		fmt.Println("Error writing to buffer")
-		panic(err)
-	}
-	err = rw.Flush()
-	if err != nil {
-		fmt.Println("Error flushing buffer")
-		panic(err)
-	}
-}
+// func WriteStream(rw *bufio.ReadWriter, move string) {
+// 	// Write to stream
+// 	_, err := rw.WriteString(fmt.Sprintf("%s\n", move))
+// 	if err != nil {
+// 		fmt.Println("Error writing to buffer")
+// 		panic(err)
+// 	}
+// 	err = rw.Flush()
+// 	if err != nil {
+// 		fmt.Println("Error flushing buffer")
+// 		panic(err)
+// 	}
+// }
 
 // #######################################################################
 // (Section 3) MDNS Setup ################################################
