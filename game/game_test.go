@@ -1,4 +1,4 @@
-package main
+package game
 
 // Want to test a game w/ fool's mate
 /*

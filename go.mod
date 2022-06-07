@@ -1,4 +1,4 @@
-module start/chess
+module github.com/jkunzler0/chess
 
 go 1.18
 
