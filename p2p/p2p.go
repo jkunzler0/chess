@@ -25,10 +25,9 @@ var ghNotifier chan<- *GameHello
 var gh GameHello
 
 type GameHello struct {
-	// Rw    *bufio.ReadWriter
-	RCh   chan string
-	WCh   chan string
-	White bool
+	RCh   chan string // To read from the peer and write to the game thread
+	WCh   chan string // To read from the game thread and write to the peer
+	White bool        // True if we are white, false if we are black
 }
 
 type P2pConfig struct {
@@ -114,11 +113,16 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 func handleStream(stream network.Stream) {
 	fmt.Println("Got a new stream!")
 
-	// Create a buffer stream for non blocking read and write
+	// Create a buffer stream for non blocking read/write to/from the peer
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	// Create channels to send/receive moves to/from the game thread
 	gh.RCh, gh.WCh = make(chan string, 1), make(chan string, 1)
+
+	// Kick off the read/write routines for communicating with the peer
 	go readStream(rw, gh.RCh)
 	go writeStream(rw, gh.WCh)
+
+	// Pass back the read/write channels to the game thread
 	ghNotifier <- &GameHello{gh.RCh, gh.WCh, gh.White}
 }
 

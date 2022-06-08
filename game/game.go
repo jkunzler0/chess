@@ -3,13 +3,13 @@ package game
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strings"
 )
 
+var reader *bufio.Reader
+
 func readYourMove() (string, error) {
 	fmt.Print("Enter move: ")
-	reader := bufio.NewReader(os.Stdin)
 	// ReadString will block until the delimiter is entered
 	input, err := reader.ReadString('\n')
 	if err != nil {
@@ -19,6 +19,8 @@ func readYourMove() (string, error) {
 
 	// Remove the delimeter from the string
 	input = strings.TrimSuffix(input, "\r\n")
+	input = strings.TrimSuffix(input, "\n")
+	fmt.Println("input: (", input, ")")
 	return input, nil
 }
 
@@ -32,9 +34,10 @@ func yourTurn(b *Board, color bool) (bool, string) {
 		// Read Move
 		move, err = readYourMove()
 		if err != nil {
-			fmt.Println("Error: ", err)
+			fmt.Println("Error: ", err, "Move: ", move)
 			fmt.Println("Please input a valid move:")
-			continue
+			select {}
+			// continue
 		}
 		if move == "quit" || move == "q" {
 			return false, move
@@ -58,7 +61,9 @@ func yourTurn(b *Board, color bool) (bool, string) {
 	}
 }
 
-func HotseatGame() {
+func HotseatGame(stdin *bufio.Reader) {
+
+	reader = stdin
 
 	fmt.Println("----- Hotsteat Chess Game -----")
 	fmt.Println("For a p2p game or game instructions, see `./chess -help`.")
@@ -106,7 +111,9 @@ func theirTurn(b *Board, color bool, move string) bool {
 	return !checkmate
 }
 
-func P2pGame(rch <-chan string, wch chan<- string, yourColor bool) {
+func P2pGame(rch <-chan string, wch chan<- string, yourColor bool, stdin *bufio.Reader) {
+
+	reader = stdin
 
 	fmt.Println("----- P2P Chess Game -----")
 	fmt.Println("For a hotseat game or game instructions, see `./chess -help`.")
@@ -139,5 +146,4 @@ func P2pGame(rch <-chan string, wch chan<- string, yourColor bool) {
 		turn = !turn
 	}
 	fmt.Println("Game End")
-	os.Exit(0)
 }

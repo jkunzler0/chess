@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -20,13 +21,17 @@ func main() {
 		os.Exit(0)
 	}
 
+	reader := bufio.NewReader(os.Stdin)
+
 	// If p2p is off, start a hotseat game
 	if !cfg.p2p {
-		game.HotseatGame()
+		game.HotseatGame(reader)
 		return
 	}
 
-	// Setup p2p, passing its config and a channel to hear back from
+	// Setup p2p: providing its config and a channel to recieve the GameHello
+	// The GameHello contains two channels for reading/writing to/from a peer
+	//		and the color of this player
 	ch := make(chan *p2p.GameHello, 1)
 	err := p2p.P2pSetup(p2pCfg, ch)
 	if err != nil {
@@ -34,8 +39,11 @@ func main() {
 	}
 
 	// Block here until we connect to a peer
-	// On connection to a peer, we receive the game hello on ch
+	// On connection to a peer, we receive the GameHello on ch
 	gh := <-ch
-	game.P2pGame(gh.RCh, gh.WCh, gh.White)
+	defer close(gh.RCh)
+	defer close(gh.WCh)
+	// Start the P2P game
+	game.P2pGame(gh.RCh, gh.WCh, gh.White, reader)
 
 }
