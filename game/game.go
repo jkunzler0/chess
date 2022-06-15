@@ -6,9 +6,7 @@ import (
 	"strings"
 )
 
-var reader *bufio.Reader
-
-func readYourMove() (string, error) {
+func readYourMove(reader *bufio.Reader) (string, error) {
 	fmt.Print("Enter move: ")
 	// ReadString will block until the delimiter is entered
 	input, err := reader.ReadString('\n')
@@ -18,13 +16,14 @@ func readYourMove() (string, error) {
 	}
 
 	// Remove the delimeter from the string
-	input = strings.TrimSuffix(input, "\r\n")
+	input = strings.TrimSuffix(input, "\r")
 	input = strings.TrimSuffix(input, "\n")
-	fmt.Println("input: (", input, ")")
+
+	// fmt.Println("input: (", input, ")")
 	return input, nil
 }
 
-func yourTurn(b *Board, color bool) (bool, string) {
+func yourTurn(b *Board, color bool, reader *bufio.Reader) (bool, string) {
 
 	var err error
 	var move string
@@ -32,7 +31,7 @@ func yourTurn(b *Board, color bool) (bool, string) {
 
 	for {
 		// Read Move
-		move, err = readYourMove()
+		move, err = readYourMove(reader)
 		if err != nil {
 			fmt.Println("Error: ", err, "Move: ", move)
 			fmt.Println("Please input a valid move:")
@@ -61,9 +60,7 @@ func yourTurn(b *Board, color bool) (bool, string) {
 	}
 }
 
-func HotseatGame(stdin *bufio.Reader) {
-
-	reader = stdin
+func HotseatGame(reader *bufio.Reader) {
 
 	fmt.Println("----- Hotsteat Chess Game -----")
 	fmt.Println("For a p2p game or game instructions, see `./chess -help`.")
@@ -82,7 +79,7 @@ func HotseatGame(stdin *bufio.Reader) {
 		} else {
 			fmt.Println("Black's Turn")
 		}
-		playing, _ = yourTurn(&board, color)
+		playing, _ = yourTurn(&board, color, reader)
 		color = !color
 	}
 	fmt.Println("Game End")
@@ -111,9 +108,7 @@ func theirTurn(b *Board, color bool, move string) bool {
 	return !checkmate
 }
 
-func P2pGame(rch <-chan string, wch chan<- string, yourColor bool, stdin *bufio.Reader) {
-
-	reader = stdin
+func P2pGame(rch <-chan string, wch chan<- string, yourColor bool, reader *bufio.Reader) {
 
 	fmt.Println("----- P2P Chess Game -----")
 	fmt.Println("For a hotseat game or game instructions, see `./chess -help`.")
@@ -132,7 +127,7 @@ func P2pGame(rch <-chan string, wch chan<- string, yourColor bool, stdin *bufio.
 		if turn {
 			fmt.Println("Your Turn")
 			// Make your turn locally
-			playing, move = yourTurn(&board, yourColor)
+			playing, move = yourTurn(&board, yourColor, reader)
 			// Send your move to your opponent
 			wch <- move
 		} else {
