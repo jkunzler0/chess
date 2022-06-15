@@ -8,7 +8,7 @@ func TestNewBoard(t *testing.T) {
 	var err error
 
 	// Default board
-	var b Board
+	var b board
 	err = newBoard(&b, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
 	if err != nil {
 		t.Error(err)
@@ -16,7 +16,7 @@ func TestNewBoard(t *testing.T) {
 	// printBoard(b)
 
 	// Misc board
-	var c Board
+	var c board
 	err = newBoard(&c, "8/4pK2/8/qr6/8/8/PPPPPPPP/RNBQ3R")
 	if err != nil {
 		t.Error(err)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -21,11 +20,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
+	// Initialize Game State
+	gs := game.NewGameState()
 
 	// If p2p is off, start a hotseat game
 	if !cfg.p2p {
-		game.HotseatGame(reader)
+		game.HotseatGame(gs)
 		return
 	}
 
@@ -43,7 +43,10 @@ func main() {
 	gh := <-ch
 	defer close(gh.RCh)
 	defer close(gh.WCh)
+
+	// Update the game state with the gameHello's read/write channels
+	game.UpdateGameState(gs, gh.White, gh.RCh, gh.WCh)
 	// Start the P2P game
-	game.P2pGame(gh.RCh, gh.WCh, gh.White, reader)
+	game.P2pGame(gs)
 
 }

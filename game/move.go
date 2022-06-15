@@ -7,24 +7,20 @@ import (
 )
 
 const White bool = true
-const Black bool = false
 
-// type Piece rune
-// TODO replace StartPiece and EndPiece with type Piece pointers?
-
-type Move struct {
-	X1, Y1, X2, Y2 int
-	StartPiece     rune
-	EndPiece       rune
-	Color          bool
-	Board          Board
+type move struct {
+	x1, y1, x2, y2 int
+	startPiece     rune
+	endPiece       rune
+	white          bool
+	brd            board
 }
 
 // #######################################################################
 // (Section 1) Moving and Verifying Moves ################################
 // #######################################################################
 
-func makeMove(b *Board, s string, color bool) error {
+func makeMove(b *board, s string, white bool) error {
 	// e.g.	`s := "a2 a3"` OR `s := "a2a3"`
 
 	// Parse move string, s, into coordinates
@@ -41,10 +37,10 @@ func makeMove(b *Board, s string, color bool) error {
 		return fmt.Errorf("invalid bounds for move")
 	}
 
-	// Create a Move struct, validate the move, and then make the move
-	m := Move{x1, y1, x2, y2, b[x1][y1], b[x2][y2], color, *b}
+	// Create a move struct, validate the move, and then make the move
+	m := move{x1, y1, x2, y2, b[x1][y1], b[x2][y2], white, *b}
 	if ok, err := validateMove(m); ok {
-		b[m.X1][m.Y1], b[m.X2][m.Y2] = '-', b[m.X1][m.Y1]
+		b[m.x1][m.y1], b[m.x2][m.y2] = '-', b[m.x1][m.y1]
 	} else {
 		return fmt.Errorf("move is invalid: %w", err)
 	}
@@ -53,11 +49,11 @@ func makeMove(b *Board, s string, color bool) error {
 }
 
 // Return true if the move is valid, return false otherwise
-func validateMove(m Move) (bool, error) {
+func validateMove(m move) (bool, error) {
 
 	// Return if start is not my color OR if end is my color
-	validStart := strings.Contains("prnbqkPRNBQK", string(m.StartPiece)) && (m.Color && unicode.IsUpper(m.StartPiece) || !m.Color && unicode.IsLower(m.StartPiece))
-	validEnd := m.EndPiece == '-' || m.Color && unicode.IsLower(m.EndPiece) || !m.Color && unicode.IsUpper(m.EndPiece)
+	validStart := strings.Contains("prnbqkPRNBQK", string(m.startPiece)) && (m.white && unicode.IsUpper(m.startPiece) || !m.white && unicode.IsLower(m.startPiece))
+	validEnd := m.endPiece == '-' || m.white && unicode.IsLower(m.endPiece) || !m.white && unicode.IsUpper(m.endPiece)
 	if !validStart || !validEnd {
 		return false, fmt.Errorf("invalid start or invalid end")
 	}
@@ -65,15 +61,15 @@ func validateMove(m Move) (bool, error) {
 	// Check rules for specific pieces
 	var valid bool
 	var err error
-	switch m.StartPiece {
+	switch m.startPiece {
 	case 'P', 'p':
 
 		// Extra rules for pawn
-		if m.Y1-m.Y2 == 2 && (m.Y1 != 1 && m.Y1 != 6) {
+		if m.y1-m.y2 == 2 && (m.y1 != 1 && m.y1 != 6) {
 			return false, fmt.Errorf("pawn can only advance 2 squares if it has not already moved")
-		} else if (m.X1-m.X2 != 0 && m.EndPiece == '-') || (m.X1-m.X2 == 0 && m.EndPiece != '-') {
+		} else if (m.x1-m.x2 != 0 && m.endPiece == '-') || (m.x1-m.x2 == 0 && m.endPiece != '-') {
 			return false, fmt.Errorf("pawn can only attack diagonally and move vertically")
-		} else if m.Y1-m.Y2 >= 1 && !m.Color || m.Y1-m.Y2 <= -1 && m.Color {
+		} else if m.y1-m.y2 >= 1 && !m.white || m.y1-m.y2 <= -1 && m.white {
 			return false, fmt.Errorf("pawn is going the wrong way")
 		}
 
@@ -96,11 +92,11 @@ func validateMove(m Move) (bool, error) {
 	}
 
 	// Verify that this move does NOT put our king into check
-	m.Board[m.X1][m.Y1], m.Board[m.X2][m.Y2] = '-', m.Board[m.X1][m.Y1]
-	check, _ := inCheck(m.Board)
-	if unicode.IsUpper(m.StartPiece) && check[0] {
+	m.brd[m.x1][m.y1], m.brd[m.x2][m.y2] = '-', m.brd[m.x1][m.y1]
+	check, _ := inCheck(m.brd)
+	if unicode.IsUpper(m.startPiece) && check[0] {
 		return !check[0], fmt.Errorf("cannot put your own king into check")
-	} else if unicode.IsLower(m.StartPiece) && check[1] {
+	} else if unicode.IsLower(m.startPiece) && check[1] {
 		return !check[1], fmt.Errorf("cannot put your own king into check")
 	}
 
@@ -108,28 +104,28 @@ func validateMove(m Move) (bool, error) {
 }
 
 // Pawns, Knights, and Kings jump to a location (as opposed to crawling/sliding)
-func validateMoveJump(m Move) (bool, error) {
-	// fmt.Println("coor", m.X1, " ", m.Y1, " ", m.X2, " ", m.Y2)
-	j := [2]int{m.X1 - m.X2, m.Y1 - m.Y2}
-	for _, i := range getDirections(m.StartPiece) {
+func validateMoveJump(m move) (bool, error) {
+	// fmt.Println("coor", m.x1, " ", m.y1, " ", m.x2, " ", m.y2)
+	j := [2]int{m.x1 - m.x2, m.y1 - m.y2}
+	for _, i := range getDirections(m.startPiece) {
 		// fmt.Println("match", i, " ", j)
 		if i == j {
 			return true, nil
 		}
 	}
-	return false, fmt.Errorf("%s cannot move there", string(m.StartPiece))
+	return false, fmt.Errorf("%s cannot move there", string(m.startPiece))
 }
 
 // Queen, Bishops, and Rooks crawl/slide across the board
-func validateMoveCrawl(m Move) (bool, error) {
-	for _, i := range getDirections(m.StartPiece) {
-		x, y := m.X1+i[0], m.Y1+i[1]
+func validateMoveCrawl(m move) (bool, error) {
+	for _, i := range getDirections(m.startPiece) {
+		x, y := m.x1+i[0], m.y1+i[1]
 		for inBounds(x, y) {
-			// fmt.Println(x, y, m.X1, m.Y1, m.X2, m.Y2, i)
-			if x == m.X2 && y == m.Y2 {
+			// fmt.Println(x, y, m.x1, m.y1, m.x2, m.y2, i)
+			if x == m.x2 && y == m.y2 {
 				// We made it to the endPiece
 				return true, nil
-			} else if m.Board[x][y] != '-' {
+			} else if m.brd[x][y] != '-' {
 				// We ran into another piece
 				break
 			}
@@ -137,14 +133,14 @@ func validateMoveCrawl(m Move) (bool, error) {
 			y += i[1]
 		}
 	}
-	return false, fmt.Errorf("%s cannot move there", string(m.StartPiece))
+	return false, fmt.Errorf("%s cannot move there", string(m.startPiece))
 }
 
 // #######################################################################
 // (Section 2) Check and Checkmate #######################################
 // #######################################################################
 
-func inCheck(b Board) ([2]bool, error) {
+func inCheck(b board) ([2]bool, error) {
 
 	// Get location of both kings
 	wk, bk, err := findKings(b)
@@ -153,8 +149,8 @@ func inCheck(b Board) ([2]bool, error) {
 	}
 
 	// Create moves against the kings
-	mbk := Move{X2: bk[0], Y2: bk[1], Color: White, EndPiece: 'k', Board: b}
-	mwk := Move{X2: wk[0], Y2: wk[1], Color: Black, EndPiece: 'K', Board: b}
+	mbk := move{x2: bk[0], y2: bk[1], white: true, endPiece: 'k', brd: b}
+	mwk := move{x2: wk[0], y2: wk[1], white: false, endPiece: 'K', brd: b}
 
 	// To determine if a kings is in check,
 	// attempt to validate moves of every pieces against the enemy king
@@ -163,10 +159,10 @@ func inCheck(b Board) ([2]bool, error) {
 		for y := 0; y < 8; y++ {
 			if unicode.IsLetter(b[x][y]) {
 				if unicode.IsUpper(b[x][y]) && !blackCheck {
-					mbk.X1, mbk.Y1, mbk.StartPiece = x, y, b[x][y]
+					mbk.x1, mbk.y1, mbk.startPiece = x, y, b[x][y]
 					blackCheck, _ = validateMove(mbk)
 				} else if unicode.IsLower(b[x][y]) && !whiteCheck {
-					mwk.X1, mwk.Y1, mwk.StartPiece = x, y, b[x][y]
+					mwk.x1, mwk.y1, mwk.startPiece = x, y, b[x][y]
 					whiteCheck, _ = validateMove(mwk)
 				}
 			}
@@ -176,27 +172,27 @@ func inCheck(b Board) ([2]bool, error) {
 	return [2]bool{whiteCheck, blackCheck}, nil
 }
 
-func inCheckmate(b Board, kingColor bool) bool {
+func inCheckmate(b board, kingcolor bool) bool {
 
-	var m Move
+	var m move
 	tmpB := b
 
 	for x := 0; x < 8; x++ {
 		for y := 0; y < 8; y++ {
 			if unicode.IsLetter(b[x][y]) &&
-				(kingColor && unicode.IsUpper(b[x][y]) || !kingColor && unicode.IsLower(b[x][y])) {
+				(kingcolor && unicode.IsUpper(b[x][y]) || !kingcolor && unicode.IsLower(b[x][y])) {
 
-				m = Move{X1: x, Y1: y, Color: kingColor, StartPiece: b[x][y], Board: tmpB}
+				m = move{x1: x, y1: y, white: kingcolor, startPiece: b[x][y], brd: tmpB}
 				for z := 0; z < 8; z++ {
 					for w := 0; w < 8; w++ {
-						m.X2, m.Y2, m.EndPiece = z, w, b[z][w]
+						m.x2, m.y2, m.endPiece = z, w, b[z][w]
 						validMove, _ := validateMove(m)
 						if validMove {
-							tmpB[m.X1][m.Y1], tmpB[m.X2][m.Y2] = '-', tmpB[m.X1][m.Y1]
+							tmpB[m.x1][m.y1], tmpB[m.x2][m.y2] = '-', tmpB[m.x1][m.y1]
 							inCheck, _ := inCheck(tmpB)
-							if kingColor && !inCheck[0] {
+							if kingcolor && !inCheck[0] {
 								return false
-							} else if !kingColor && !inCheck[1] {
+							} else if !kingcolor && !inCheck[1] {
 								return false
 							} else {
 								// Reset temp board
@@ -214,7 +210,7 @@ func inCheckmate(b Board, kingColor bool) bool {
 
 // Prints if any check or checkmate
 // Return true if any checkmate
-func reportCheckAndCheckmate(b Board) (bool, error) {
+func reportCheckAndCheckmate(b board) (bool, error) {
 
 	check, err := inCheck(b)
 	if err != nil {
@@ -229,7 +225,7 @@ func reportCheckAndCheckmate(b Board) (bool, error) {
 		}
 		fmt.Println("White is in check!")
 	} else if check[1] {
-		if inCheckmate(b, Black) {
+		if inCheckmate(b, !White) {
 			printBoard(b)
 			fmt.Println("Black is in checkmate!")
 			fmt.Println("White wins!")
@@ -266,7 +262,7 @@ func getDirections(piece rune) [][2]int {
 	}
 }
 
-func findKings(b Board) ([2]int, [2]int, error) {
+func findKings(b board) ([2]int, [2]int, error) {
 
 	var wk, bk [2]int
 	var wkFound, bkFound bool

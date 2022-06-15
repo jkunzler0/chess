@@ -8,7 +8,7 @@ func TestMakeMove(t *testing.T) {
 	// TODO actually make this test robust
 
 	// Setup
-	var b Board
+	var b board
 	var err error
 	defaultBoard(&b)
 	// printBoard(b)
@@ -37,7 +37,7 @@ func TestMakeMove(t *testing.T) {
 	// Test black and pawn movement
 	moves := []string{"f7f5", "f5e4"}
 	for _, x := range moves {
-		err = makeMove(&b, x, Black)
+		err = makeMove(&b, x, !White)
 		if err != nil {
 			t.Error(x, err)
 			break
@@ -48,7 +48,7 @@ func TestMakeMove(t *testing.T) {
 }
 
 func TestInCheck(t *testing.T) {
-	var b Board
+	var b board
 	var err error
 	var check [2]bool
 	var checkmate bool
@@ -95,7 +95,7 @@ func TestInCheck(t *testing.T) {
 	if check != [2]bool{false, true} {
 		t.Error(check, " failed inCheck: ", err)
 	}
-	checkmate = inCheckmate(b, Black)
+	checkmate = inCheckmate(b, !White)
 	if checkmate != false {
 		t.Error(checkmate, " failed inCheckmate: ")
 	}
@@ -104,7 +104,7 @@ func TestInCheck(t *testing.T) {
 
 func TestMoveIntoCheck(t *testing.T) {
 	// Setup
-	var b Board
+	var b board
 	var err error
 	newBoard(&b, "4K3/8/8/8/3q4/8/8/3k4")
 	// printBoard(b)
