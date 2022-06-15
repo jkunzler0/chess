@@ -1,4 +1,4 @@
-module github.com/jkunzler0/chess
+module github.com/jkunzler0/chess/client
 
 go 1.18
 

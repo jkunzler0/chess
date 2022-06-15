@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jkunzler0/chess/game"
-	"github.com/jkunzler0/chess/p2p"
+	"github.com/jkunzler0/chess/client/game"
+	"github.com/jkunzler0/chess/client/p2p"
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 	defer close(gh.RCh)
 	defer close(gh.WCh)
 
-	// Update the game state with the gameHello's read/write channels
+	// Update the game state with the GameHello's information
 	game.UpdateGameState(gs, gh.White, gh.RCh, gh.WCh)
 	// Start the P2P game
 	game.P2pGame(gs)

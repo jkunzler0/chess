@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/jkunzler0/chess/p2p"
+	"github.com/jkunzler0/chess/client/p2p"
 )
 
 type config struct {
