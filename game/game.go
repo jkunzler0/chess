@@ -75,15 +75,15 @@ func HotseatGame(gs *gameState) {
 	fmt.Println("For a p2p game or game instructions, see `./chess -help`.")
 	printBoard(*gs.brd)
 
-	playing, color := true, true
+	playing := true
 	for playing {
-		if color {
+		if gs.white {
 			fmt.Println("White's Turn")
 		} else {
 			fmt.Println("Black's Turn")
 		}
 		playing, _ = yourTurn(gs)
-		color = !color
+		gs.white = !gs.white
 	}
 	fmt.Println("Game End")
 }
@@ -142,7 +142,7 @@ func P2pGame(gs *gameState) {
 
 func NewGameState() *gameState {
 
-	// Create our game brd
+	// Create our game broad
 	var b board
 	err := defaultBoard(&b)
 	if err != nil {
