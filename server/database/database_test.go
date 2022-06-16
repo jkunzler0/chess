@@ -8,7 +8,7 @@ import (
 
 func TestPut(t *testing.T) {
 	const key = "create-key"
-	value := score{win: 1, loss: 2}
+	value := Score{Win: 1, Loss: 2}
 
 	var val interface{}
 	var contains bool
@@ -39,7 +39,7 @@ func TestPut(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	const key = "read-key"
-	value := score{win: 2, loss: 1}
+	value := Score{Win: 2, Loss: 1}
 
 	var val interface{}
 	var err error
@@ -51,7 +51,7 @@ func TestGet(t *testing.T) {
 	if err == nil {
 		t.Error("expected an error")
 	}
-	if !errors.Is(err, ErrorNoSuchKey) {
+	if !errors.Is(err, ErrorNoSuchUser) {
 		t.Error("unexpected error:", err)
 	}
 
@@ -69,7 +69,7 @@ func TestGet(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	const key = "delete-key"
-	value := score{win: 3, loss: 0}
+	value := Score{Win: 3, Loss: 0}
 
 	var contains bool
 

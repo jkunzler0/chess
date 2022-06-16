@@ -9,9 +9,3 @@ TODO:
 - Add a test for p2p?
 - Database core functionality
 - Validate p2p game results for the database
-
-Misc. Questions to Anwser:
-- Where should I put defer close statements?
-- Should P2pGame params be a single struct?
-- Is the global *bufio.Reader in game.go appropriate?
-- 

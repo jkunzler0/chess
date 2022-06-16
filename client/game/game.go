@@ -7,13 +7,45 @@ import (
 	"strings"
 )
 
+// #######################################################################
+// (Section 1) GameState #################################################
+// #######################################################################
+
 type gameState struct {
-	brd    *board
-	white  bool
-	reader *bufio.Reader
-	rch    chan string
-	wch    chan string
+	brd       *board
+	whiteTurn bool
+	reader    *bufio.Reader
+	rch       chan string
+	wch       chan string
 }
+
+func NewGameState() *gameState {
+	// Create our game broad
+	var b board
+	err := defaultBoard(&b)
+	if err != nil {
+		panic(err)
+	}
+
+	return &gameState{
+		brd:       &b,
+		whiteTurn: true, // White always starts first
+		reader:    bufio.NewReader(os.Stdin),
+	}
+}
+
+// UpdateGameState to use channels to communicate moves for p2p
+func UpdateGameState(gs *gameState, whiteTurn bool, rch chan string, wch chan string) error {
+	gs.whiteTurn = whiteTurn
+	gs.rch = rch
+	gs.wch = wch
+
+	return nil
+}
+
+// #######################################################################
+// (Section 2) Turns #####################################################
+// #######################################################################
 
 func readYourMove(reader *bufio.Reader) (string, error) {
 	fmt.Print("Enter move: ")
@@ -44,14 +76,13 @@ func yourTurn(gs *gameState) (bool, string) {
 		if err != nil {
 			fmt.Println("Error: ", err, "Move: ", move)
 			fmt.Println("Please input a valid move:")
-			select {}
-			// continue
+			continue
 		}
 		if move == "quit" || move == "q" {
 			return false, move
 		}
 		// Verify and Make Move
-		err = makeMove(gs.brd, move, gs.white)
+		err = makeMove(gs.brd, move, gs.whiteTurn)
 		if err != nil {
 			fmt.Println("Error: ", err)
 			fmt.Println("Please input a valid move:")
@@ -67,25 +98,6 @@ func yourTurn(gs *gameState) (bool, string) {
 		}
 		return !checkmate, move
 	}
-}
-
-func HotseatGame(gs *gameState) {
-
-	fmt.Println("----- Hotsteat Chess Game -----")
-	fmt.Println("For a p2p game or game instructions, see `./chess -help`.")
-	printBoard(*gs.brd)
-
-	playing := true
-	for playing {
-		if gs.white {
-			fmt.Println("White's Turn")
-		} else {
-			fmt.Println("Black's Turn")
-		}
-		playing, _ = yourTurn(gs)
-		gs.white = !gs.white
-	}
-	fmt.Println("Game End")
 }
 
 func theirTurn(b *board, color bool, move string) bool {
@@ -111,6 +123,29 @@ func theirTurn(b *board, color bool, move string) bool {
 	return !checkmate
 }
 
+// #######################################################################
+// (Section 3) Main Game Functions/Loops #################################
+// #######################################################################
+
+func HotseatGame(gs *gameState) {
+
+	fmt.Println("----- Hotsteat Chess Game -----")
+	fmt.Println("For a p2p game or game instructions, see `./chess -help`.")
+	printBoard(*gs.brd)
+
+	playing := true
+	for playing {
+		if gs.whiteTurn {
+			fmt.Println("White's Turn")
+		} else {
+			fmt.Println("Black's Turn")
+		}
+		playing, _ = yourTurn(gs)
+		gs.whiteTurn = !gs.whiteTurn
+	}
+	fmt.Println("Game End")
+}
+
 func P2pGame(gs *gameState) {
 
 	fmt.Println("----- P2P Chess Game -----")
@@ -118,7 +153,7 @@ func P2pGame(gs *gameState) {
 	printBoard(*gs.brd)
 
 	var move string
-	turn := gs.white
+	turn := gs.whiteTurn
 	playing := true
 	for playing {
 		if turn {
@@ -132,35 +167,10 @@ func P2pGame(gs *gameState) {
 			// Block until your opponent sends their move
 			move = <-gs.rch
 			// Make your opponent's move locally
-			playing = theirTurn(gs.brd, !gs.white, move)
+			playing = theirTurn(gs.brd, !gs.whiteTurn, move)
 			fmt.Println("Their move: ", move)
 		}
 		turn = !turn
 	}
 	fmt.Println("Game End")
-}
-
-func NewGameState() *gameState {
-
-	// Create our game broad
-	var b board
-	err := defaultBoard(&b)
-	if err != nil {
-		panic(err)
-	}
-
-	return &gameState{
-		brd:    &b,
-		white:  true,
-		reader: bufio.NewReader(os.Stdin),
-	}
-}
-
-func UpdateGameState(gs *gameState, white bool, rch chan string, wch chan string) error {
-
-	gs.white = white
-	gs.rch = rch
-	gs.wch = wch
-
-	return nil
 }

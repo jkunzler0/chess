@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestHotseat(t *testing.T) {
+func TestHotseatGame(t *testing.T) {
 
 	gs := NewGameState()
 	gs.reader = bufio.NewReader(strings.NewReader("f2f3\ne7e5\ng2g4\nd8h4\nq\n"))
@@ -22,7 +22,7 @@ func TestP2pGame(t *testing.T) {
 
 	gs := NewGameState()
 	gs.reader = bufio.NewReader(strings.NewReader("e7e5\nd8h4\n"))
-	gs.white = false
+	gs.whiteTurn = false
 	gs.rch, gs.wch = make(chan string, 1), make(chan string, 1)
 
 	go func() {
