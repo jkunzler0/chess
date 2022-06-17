@@ -118,12 +118,13 @@ var transact database.TransactionLogger
 func setupTransactionLog() error {
 	var err error
 
-	transact, err = database.NewPostgresTransactionLogger(database.PostgresDbParams{
-		Host:     "localhost",
-		DBName:   "chessScoreboard",
-		User:     "admin",
-		Password: "pass123",
-	})
+	// transact, err = database.NewPostgresTransactionLogger(database.PostgresDbParams{
+	// 	Host:     "localhost",
+	// 	DBName:   "chessScoreboard",
+	// 	User:     "test",
+	// 	Password: "pass123",
+	// })
+	transact, err = database.NewFileTransactionLogger("test.txt")
 	if err != nil {
 		return fmt.Errorf("failed to create transaction logger: %w", err)
 	}
