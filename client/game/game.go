@@ -11,7 +11,7 @@ import (
 // (Section 1) GameState #################################################
 // #######################################################################
 
-type gameState struct {
+type GameState struct {
 	brd       *board
 	whiteTurn bool
 	reader    *bufio.Reader
@@ -19,28 +19,38 @@ type gameState struct {
 	wch       chan string
 }
 
-func NewGameState() *gameState {
+type P2PParams struct {
+	YouStart  bool
+	ReadChan  chan string
+	WriteChan chan string
+}
+
+func InitHotseat() (*GameState, error) {
 	// Create our game broad
-	var b board
-	err := defaultBoard(&b)
+	b, err := defaultBoard()
 	if err != nil {
 		panic(err)
 	}
-
-	return &gameState{
-		brd:       &b,
+	return &GameState{
+		brd:       b,
 		whiteTurn: true, // White always starts first
 		reader:    bufio.NewReader(os.Stdin),
-	}
+	}, nil
 }
 
-// UpdateGameState to use channels to communicate moves for p2p
-func UpdateGameState(gs *gameState, whiteTurn bool, rch chan string, wch chan string) error {
-	gs.whiteTurn = whiteTurn
-	gs.rch = rch
-	gs.wch = wch
-
-	return nil
+func InitP2P(p P2PParams) (*GameState, error) {
+	// Create our game broad
+	b, err := defaultBoard()
+	if err != nil {
+		panic(err)
+	}
+	return &GameState{
+		brd:       b,
+		whiteTurn: p.YouStart,
+		reader:    bufio.NewReader(os.Stdin),
+		rch:       p.ReadChan,
+		wch:       p.WriteChan,
+	}, nil
 }
 
 // #######################################################################
@@ -64,7 +74,7 @@ func readYourMove(reader *bufio.Reader) (string, error) {
 	return input, nil
 }
 
-func yourTurn(gs *gameState) (bool, string) {
+func (gs *GameState) yourTurn() (bool, string) {
 
 	var err error
 	var move string
@@ -88,7 +98,7 @@ func yourTurn(gs *gameState) (bool, string) {
 			fmt.Println("Please input a valid move:")
 			continue
 		}
-		printBoard(*gs.brd)
+		gs.brd.printBoard()
 		// Report Check/Checkmate and if Game is Complete
 		checkmate, err = reportCheckAndCheckmate(*gs.brd)
 		if err != nil {
@@ -100,7 +110,7 @@ func yourTurn(gs *gameState) (bool, string) {
 	}
 }
 
-func theirTurn(b *board, color bool, move string) bool {
+func (gs *GameState) theirTurn(move string) bool {
 
 	var checkmate bool
 
@@ -108,14 +118,14 @@ func theirTurn(b *board, color bool, move string) bool {
 		return false
 	}
 	// Verify and Make Move
-	err := makeMove(b, move, color)
+	err := makeMove(gs.brd, move, !gs.whiteTurn)
 	if err != nil {
 		fmt.Println("They gave you a bad input... (", move, ")")
 		panic(err)
 	}
-	printBoard(*b)
+	gs.brd.printBoard()
 	// Report Check/Checkmate and if Game is Complete
-	checkmate, err = reportCheckAndCheckmate(*b)
+	checkmate, err = reportCheckAndCheckmate(*gs.brd)
 	if err != nil {
 		fmt.Println("They gave you a bad input... (", move, ")")
 		panic(err)
@@ -127,11 +137,11 @@ func theirTurn(b *board, color bool, move string) bool {
 // (Section 3) Main Game Functions/Loops #################################
 // #######################################################################
 
-func HotseatGame(gs *gameState) {
+func (gs *GameState) PlayHotseat() {
 
 	fmt.Println("----- Hotsteat Chess Game -----")
 	fmt.Println("For a p2p game or game instructions, see `./chess -help`.")
-	printBoard(*gs.brd)
+	gs.brd.printBoard()
 
 	playing := true
 	for playing {
@@ -140,17 +150,17 @@ func HotseatGame(gs *gameState) {
 		} else {
 			fmt.Println("Black's Turn")
 		}
-		playing, _ = yourTurn(gs)
+		playing, _ = gs.yourTurn()
 		gs.whiteTurn = !gs.whiteTurn
 	}
 	fmt.Println("Game End")
 }
 
-func P2pGame(gs *gameState) {
+func (gs *GameState) PlayP2P() {
 
 	fmt.Println("----- P2P Chess Game -----")
 	fmt.Println("For a hotseat game or game instructions, see `./chess -help`.")
-	printBoard(*gs.brd)
+	gs.brd.printBoard()
 
 	var move string
 	turn := gs.whiteTurn
@@ -159,7 +169,7 @@ func P2pGame(gs *gameState) {
 		if turn {
 			fmt.Println("Your Turn")
 			// Make your turn locally
-			playing, move = yourTurn(gs)
+			playing, move = gs.yourTurn()
 			// Send your move to your opponent
 			gs.wch <- move
 		} else {
@@ -167,7 +177,7 @@ func P2pGame(gs *gameState) {
 			// Block until your opponent sends their move
 			move = <-gs.rch
 			// Make your opponent's move locally
-			playing = theirTurn(gs.brd, !gs.whiteTurn, move)
+			playing = gs.theirTurn(move)
 			fmt.Println("Their move: ", move)
 		}
 		turn = !turn

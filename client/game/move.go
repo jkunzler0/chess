@@ -218,7 +218,7 @@ func reportCheckAndCheckmate(b board) (bool, error) {
 	}
 	if check[0] {
 		if inCheckmate(b, White) {
-			printBoard(b)
+			b.printBoard()
 			fmt.Println("White is in checkmate!")
 			fmt.Println("Black wins!")
 			return true, nil
@@ -226,7 +226,7 @@ func reportCheckAndCheckmate(b board) (bool, error) {
 		fmt.Println("White is in check!")
 	} else if check[1] {
 		if inCheckmate(b, !White) {
-			printBoard(b)
+			b.printBoard()
 			fmt.Println("Black is in checkmate!")
 			fmt.Println("White wins!")
 			return true, nil
