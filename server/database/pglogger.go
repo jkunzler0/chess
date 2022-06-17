@@ -9,6 +9,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// #######################################################################
+// (Section 1) Initialization ############################################
+// #######################################################################
+
 type PostgresDbParams struct {
 	DBName   string
 	Host     string
@@ -21,110 +25,6 @@ type PostgresTransactionLogger struct {
 	errors <-chan error // Read-only channel for receiving errors
 	db     *sql.DB      // Our database access interface
 	wg     *sync.WaitGroup
-}
-
-func (l *PostgresTransactionLogger) WritePut(user string, value Score) {
-	l.wg.Add(1)
-	l.events <- Event{EventType: EventPut, User1: user, Value: Score{value.Win, value.Win}}
-}
-
-func (l *PostgresTransactionLogger) WriteDelete(user string) {
-	l.wg.Add(1)
-	l.events <- Event{EventType: EventDelete, User1: user}
-}
-
-func (l *PostgresTransactionLogger) WriteIncr(winner string, losser string) {
-	l.wg.Add(1)
-	l.events <- Event{EventType: EventIncr, User1: winner, User2: losser}
-}
-
-func (l *PostgresTransactionLogger) Err() <-chan error {
-	return l.errors
-}
-
-func (l *PostgresTransactionLogger) LastSequence() uint64 {
-	return 0
-}
-
-func (l *PostgresTransactionLogger) Run() {
-	events := make(chan Event, 16) // Make an events channel
-	l.events = events
-
-	errors := make(chan error, 1) // Make an errors channel
-	l.errors = errors
-
-	go func() { // The INSERT query
-		query := `INSERT INTO transactions
-			(event_type, key, value)
-			VALUES ($1, $2, $3)`
-
-		for e := range events { // Retrieve the next Event
-			_, err := l.db.Exec( // Execute the INSERT query
-				query,
-				e.EventType, e.User1, e.User2, e.Value)
-
-			if err != nil {
-				errors <- err
-			}
-		}
-	}()
-}
-
-func (l *PostgresTransactionLogger) Wait() {
-	l.wg.Wait()
-}
-
-func (l *PostgresTransactionLogger) Close() error {
-	l.wg.Wait()
-
-	if l.events != nil {
-		close(l.events) // Terminates Run loop and goroutine
-	}
-
-	return l.db.Close()
-}
-
-func (l *PostgresTransactionLogger) ReadEvents() (<-chan Event, <-chan error) {
-	outEvent := make(chan Event)    // An unbuffered events channel
-	outError := make(chan error, 1) // A buffered errors channel
-
-	query := "SELECT sequence, event_type, key, value FROM transactions"
-
-	go func() {
-		defer close(outEvent) // Close the channels when the
-		defer close(outError) // goroutine ends
-
-		rows, err := l.db.Query(query) // Run query; get result set
-		if err != nil {
-			outError <- fmt.Errorf("sql query error: %w", err)
-			return
-		}
-
-		defer rows.Close() // This is important!
-
-		var e Event // Create an empty Event
-
-		for rows.Next() { // Iterate over the rows
-
-			err = rows.Scan( // Read the values from the
-				&e.Sequence, &e.EventType, // row into the Event.
-				&e.User1, &e.User2, &e.Value)
-
-			if err != nil {
-				outError <- err
-				return
-			}
-
-			outEvent <- e // Send e to the channel
-		}
-
-		err = rows.Err()
-		if err != nil {
-			outError <- fmt.Errorf("transaction log read failure: %w", err)
-		}
-	}()
-
-	return outEvent, outError
 }
 
 func (l *PostgresTransactionLogger) verifyTableExists() (bool, error) {
@@ -192,10 +92,81 @@ func NewPostgresTransactionLogger(param PostgresDbParams) (TransactionLogger, er
 	return tl, nil
 }
 
-func StartTransactionLog(transact TransactionLogger) error {
+// #######################################################################
+// (Section 2) Startup ###################################################
+// #######################################################################
+
+func (l *PostgresTransactionLogger) Run() {
+	events := make(chan Event, 16) // Make an events channel
+	l.events = events
+
+	errors := make(chan error, 1) // Make an errors channel
+	l.errors = errors
+
+	go func() { // The INSERT query
+		query := `INSERT INTO transactions
+			(event_type, key, value)
+			VALUES ($1, $2, $3)`
+
+		for e := range events { // Retrieve the next Event
+			_, err := l.db.Exec( // Execute the INSERT query
+				query,
+				e.EventType, e.User1, e.User2, e.Value)
+
+			if err != nil {
+				errors <- err
+			}
+		}
+	}()
+}
+
+func (l *PostgresTransactionLogger) ReadEvents() (<-chan Event, <-chan error) {
+	outEvent := make(chan Event)    // An unbuffered events channel
+	outError := make(chan error, 1) // A buffered errors channel
+
+	query := "SELECT sequence, event_type, key, value FROM transactions"
+
+	go func() {
+		defer close(outEvent) // Close the channels when the
+		defer close(outError) // goroutine ends
+
+		rows, err := l.db.Query(query) // Run query; get result set
+		if err != nil {
+			outError <- fmt.Errorf("sql query error: %w", err)
+			return
+		}
+
+		defer rows.Close() // This is important!
+
+		var e Event // Create an empty Event
+
+		for rows.Next() { // Iterate over the rows
+
+			err = rows.Scan( // Read the values from the
+				&e.Sequence, &e.EventType, // row into the Event.
+				&e.User1, &e.User2, &e.Value)
+
+			if err != nil {
+				outError <- err
+				return
+			}
+
+			outEvent <- e // Send e to the channel
+		}
+
+		err = rows.Err()
+		if err != nil {
+			outError <- fmt.Errorf("transaction log read failure: %w", err)
+		}
+	}()
+
+	return outEvent, outError
+}
+
+func (l *PostgresTransactionLogger) StartTransactionLog() error {
 	var err error
 
-	events, errors := transact.ReadEvents()
+	events, errors := l.ReadEvents()
 	count, ok, e := 0, true, Event{}
 
 	for ok && err == nil {
@@ -219,14 +190,59 @@ func StartTransactionLog(transact TransactionLogger) error {
 
 	log.Printf("%d events replayed\n", count)
 
-	transact.Run()
+	l.Run()
 
 	go func() {
-		for err := range transact.Err() {
+		for err := range l.Err() {
 			log.Print(err)
 		}
 	}()
 
 	return err
 
+}
+
+// #######################################################################
+// (Section 3) Event Writes ##############################################
+// #######################################################################
+
+func (l *PostgresTransactionLogger) WritePut(user string, value Score) {
+	l.wg.Add(1)
+	l.events <- Event{EventType: EventPut, User1: user, Value: Score{value.Win, value.Win}}
+}
+
+func (l *PostgresTransactionLogger) WriteDelete(user string) {
+	l.wg.Add(1)
+	l.events <- Event{EventType: EventDelete, User1: user}
+}
+
+func (l *PostgresTransactionLogger) WriteIncr(winner string, losser string) {
+	l.wg.Add(1)
+	l.events <- Event{EventType: EventIncr, User1: winner, User2: losser}
+}
+
+// #######################################################################
+// (Section 4) Helper/Misc Functions  ####################################
+// #######################################################################
+
+func (l *PostgresTransactionLogger) Err() <-chan error {
+	return l.errors
+}
+
+func (l *PostgresTransactionLogger) LastSequence() uint64 {
+	return 0
+}
+
+func (l *PostgresTransactionLogger) Wait() {
+	l.wg.Wait()
+}
+
+func (l *PostgresTransactionLogger) Close() error {
+	l.wg.Wait()
+
+	if l.events != nil {
+		close(l.events) // Terminates Run loop and goroutine
+	}
+
+	return l.db.Close()
 }
