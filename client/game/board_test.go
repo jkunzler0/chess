@@ -5,38 +5,32 @@ import (
 )
 
 func TestNewBoard(t *testing.T) {
-	var err error
+	// var err error
 
 	// Default board
-	var b board
-	err = newBoard(&b, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
+	_, err := newBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR")
 	if err != nil {
 		t.Error(err)
 	}
-	// printBoard(b)
-
+	// b.printBoard()
 	// Misc board
-	var c board
-	err = newBoard(&c, "8/4pK2/8/qr6/8/8/PPPPPPPP/RNBQ3R")
+	_, err = newBoard("8/4pK2/8/qr6/8/8/PPPPPPPP/RNBQ3R")
 	if err != nil {
 		t.Error(err)
 	}
-	// printBoard(c)
 
 	// Rewrite previous board
-	err = defaultBoard(&c)
+	_, err = defaultBoard()
 	if err != nil {
 		t.Error(err)
 	}
-	// printBoard(c)
-	// printBoardBasic(c)
 
 	// Invalid boards
-	err = newBoard(&c, "8/4pK2/8/8/8/PPPPPPPP/RNBQ3R")
+	_, err = newBoard("8/4pK2/8/8/8/PPPPPPPP/RNBQ3R")
 	if err == nil {
 		t.Error("expected error, missing rank/row")
 	}
-	err = newBoard(&c, "rnbqkbnr/ppppppp/8/8/8/8/PPPPPPPP/RNQKBNR")
+	_, err = newBoard("rnbqkbnr/ppppppp/8/8/8/8/PPPPPPPP/RNQKBNR")
 	if err == nil {
 		t.Error("expected error, missing pieces")
 	}

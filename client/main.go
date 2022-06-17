@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	var err error
 	help := flag.Bool("help", false, "Display Help")
 	cfg, p2pCfg := parseFlags()
 
@@ -20,12 +21,17 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Initialize Game State
-	gs := game.NewGameState()
+	// Create Game Instance
+	var g *game.GameState
 
 	// If p2p is off, start a hotseat game
 	if !cfg.p2p {
-		game.HotseatGame(gs)
+		// Initialize Game State
+		g, err = game.InitHotseat()
+		if err != nil {
+			panic(err)
+		}
+		g.PlayHotseat()
 		return
 	}
 
@@ -33,7 +39,7 @@ func main() {
 	// The GameHello contains two channels for reading/writing to/from a peer
 	//		and the color of this player
 	ch := make(chan *p2p.GameHello, 1)
-	err := p2p.P2pSetup(p2pCfg, ch)
+	err = p2p.P2pSetup(p2pCfg, ch)
 	if err != nil {
 		panic(err)
 	}
@@ -44,9 +50,16 @@ func main() {
 	defer close(gh.RCh)
 	defer close(gh.WCh)
 
-	// Update the game state with the GameHello's information
-	game.UpdateGameState(gs, gh.White, gh.RCh, gh.WCh)
+	// Create the GameState with the GameHello's information
+	g, err = game.InitP2P(game.P2PParams{
+		YouStart:  gh.White,
+		ReadChan:  gh.RCh,
+		WriteChan: gh.WCh})
+	if err != nil {
+		panic(err)
+	}
+
 	// Start the P2P game
-	game.P2pGame(gs)
+	g.PlayP2P()
 
 }

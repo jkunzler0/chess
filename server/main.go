@@ -33,13 +33,15 @@ func postHandler(c *gin.Context) {
 		return
 	}
 
-	err = database.Put(u.UserID, database.Score{u.Win, u.Loss})
+	// Note that u.Win and u.Loss will be 0 if they are not set in the JSON
+
+	err = database.Put(u.UserID, database.Score{Win: u.Win, Loss: u.Loss})
 	if err != nil {
 		c.JSON(400, gin.H{"error": "could not get User"})
 		return
 	}
 
-	transact.WritePut(u.UserID, database.Score{u.Win, u.Loss})
+	transact.WritePut(u.UserID, database.Score{Win: u.Win, Loss: u.Loss})
 
 	c.JSON(http.StatusOK, gin.H{"message": "success"})
 }
@@ -126,7 +128,7 @@ func setupTransactionLog() error {
 		return fmt.Errorf("failed to create transaction logger: %w", err)
 	}
 
-	err = database.StartTransactionLog(transact)
+	err = transact.StartTransactionLog()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction logger: %w", err)
 	}

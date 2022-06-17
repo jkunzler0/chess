@@ -31,4 +31,6 @@ type TransactionLogger interface {
 	Close() error
 
 	ReadEvents() (<-chan Event, <-chan error)
+
+	StartTransactionLog() error
 }
