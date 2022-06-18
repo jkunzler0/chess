@@ -120,12 +120,12 @@ var transact database.TransactionLogger
 func setupTransactionLog(cfg *config) error {
 	var err error
 
-	if cfg.localLog {
-		// Initialize a local transaction log file
-		transact, err = database.NewFileTransactionLogger("test.txt")
-	} else {
+	if cfg.postgresLog {
 		// Initialize a Postgres transaction log
 		transact, err = database.NewPostgresTransactionLogger(cfg.dbParams)
+	} else {
+		// Initialize a local transaction log file
+		transact, err = database.NewFileTransactionLogger(cfg.localLogName)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to create transaction logger: %w", err)

@@ -7,15 +7,17 @@ import (
 )
 
 type config struct {
-	localLog   bool
-	listenPort int
-	dbParams   database.PostgresDbParams
+	postgresLog  bool
+	listenPort   int
+	localLogName string
+	dbParams     database.PostgresDbParams
 }
 
 func parseFlags() *config {
 	c := &config{}
-	flag.BoolVar(&c.localLog, "ll", true, "Transaction Log Location\n")
+	flag.BoolVar(&c.postgresLog, "pg", false, "Transaction Log Location\n")
 	flag.IntVar(&c.listenPort, "port", 5000, "Server listen port\n")
+	flag.StringVar(&c.localLogName, "ll", "test.txt", "	Local Log Name\n")
 
 	flag.StringVar(&c.dbParams.DBName, "dbname", "chess", "Database name\n")
 	flag.StringVar(&c.dbParams.Host, "host", "localhost", "Database host\n")

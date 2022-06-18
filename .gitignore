@@ -4,5 +4,5 @@
 *.exe
 *.exe~
 *.so
-test.go
-test.txt
+*.txt
+*.txt~
