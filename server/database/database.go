@@ -18,6 +18,7 @@ var store = struct {
 var ErrorNoSuchUser = errors.New("no such user")
 
 func Put(user string, s Score) error {
+	// log.Printf("Put %s, %d, %d\n", user, s.Win, s.Loss)
 	store.Lock()
 	defer store.Unlock()
 
@@ -27,6 +28,7 @@ func Put(user string, s Score) error {
 }
 
 func Delete(user string) error {
+	// log.Printf("Delete %s\n", user)
 	store.Lock()
 	defer store.Unlock()
 
@@ -36,6 +38,7 @@ func Delete(user string) error {
 }
 
 func IncrWinLoss(winner string, losser string) error {
+	// log.Printf("IncrWinLoss %s , %s\n", winner, losser)
 	store.Lock()
 	defer store.Unlock()
 

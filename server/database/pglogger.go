@@ -208,7 +208,7 @@ func (l *PostgresTransactionLogger) StartTransactionLog() error {
 
 func (l *PostgresTransactionLogger) WritePut(user string, value Score) {
 	l.wg.Add(1)
-	l.events <- Event{EventType: EventPut, User1: user, Value: Score{value.Win, value.Win}}
+	l.events <- Event{EventType: EventPut, User1: user, Value: Score{value.Win, value.Loss}}
 }
 
 func (l *PostgresTransactionLogger) WriteDelete(user string) {

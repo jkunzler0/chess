@@ -12,7 +12,7 @@ import (
 func main() {
 	var err error
 	help := flag.Bool("help", false, "Display Help")
-	cfg, p2pCfg := parseFlags()
+	cfg := parseFlags()
 
 	if *help {
 		fmt.Printf("Chess!\nUsage:\nRun './chess' for local hotseat game\nor\nRun './chess -p2p' to connect to and play against a local peer\n")
@@ -39,7 +39,7 @@ func main() {
 	// The GameHello contains two channels for reading/writing to/from a peer
 	//		and the color of this player
 	ch := make(chan *p2p.GameHello, 1)
-	err = p2p.P2pSetup(p2pCfg, ch)
+	err = p2p.P2pSetup(&cfg.p2pConfig, ch)
 	if err != nil {
 		panic(err)
 	}

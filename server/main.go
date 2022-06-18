@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkunzler0/chess/server/database"
@@ -115,16 +117,16 @@ func getAllHandler(c *gin.Context) {
 
 var transact database.TransactionLogger
 
-func setupTransactionLog() error {
+func setupTransactionLog(cfg *config) error {
 	var err error
 
-	// transact, err = database.NewPostgresTransactionLogger(database.PostgresDbParams{
-	// 	Host:     "localhost",
-	// 	DBName:   "chessScoreboard",
-	// 	User:     "test",
-	// 	Password: "pass123",
-	// })
-	transact, err = database.NewFileTransactionLogger("test.txt")
+	if cfg.localLog {
+		// Initialize a local transaction log file
+		transact, err = database.NewFileTransactionLogger("test.txt")
+	} else {
+		// Initialize a Postgres transaction log
+		transact, err = database.NewPostgresTransactionLogger(cfg.dbParams)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create transaction logger: %w", err)
 	}
@@ -143,9 +145,17 @@ func setupTransactionLog() error {
 
 func main() {
 
+	help := flag.Bool("help", false, "Display Help")
+	cfg := parseFlags()
+
+	if *help {
+		fmt.Printf("Config Info: %+v\n", cfg)
+		os.Exit(0)
+	}
+
 	// Initializes the transaction log and loads any existing data
 	// Blocks until all data is read
-	err := setupTransactionLog()
+	err := setupTransactionLog(cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -157,5 +167,5 @@ func main() {
 	router.POST("/incr", incrHandler)
 	router.GET("/get", getHandler)
 	router.GET("/getAll", getAllHandler)
-	router.Run(":5000")
+	router.Run(fmt.Sprintf(":%d", cfg.listenPort))
 }

@@ -76,9 +76,9 @@ func (l *FileTransactionLogger) ReadEvents() (<-chan Event, <-chan error) {
 			line := scanner.Text()
 
 			fmt.Sscanf(
-				line, "%d\t%d\t%s\t%s",
+				line, "%d\t%d\t%s\t%s\t%d\t%d",
 				&e.Sequence, &e.EventType,
-				&e.User1, &e.User2, &e.Value)
+				&e.User1, &e.User2, &e.Value.Win, &e.Value.Loss)
 
 			if l.lastSequence >= e.Sequence {
 				outError <- fmt.Errorf("transaction numbers out of sequence")
@@ -143,7 +143,7 @@ func (l *FileTransactionLogger) StartTransactionLog() error {
 
 func (l *FileTransactionLogger) WritePut(user string, value Score) {
 	l.wg.Add(1)
-	l.events <- Event{EventType: EventPut, User1: user, Value: Score{value.Win, value.Win}}
+	l.events <- Event{EventType: EventPut, User1: user, User2: "na", Value: Score{value.Win, value.Loss}}
 }
 
 func (l *FileTransactionLogger) WriteDelete(user string) {
