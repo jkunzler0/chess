@@ -17,7 +17,7 @@ func parseFlags() *config {
 	c := &config{}
 	flag.BoolVar(&c.postgresLog, "pg", false, "Transaction Log Location\n")
 	flag.IntVar(&c.listenPort, "port", 5000, "Server listen port\n")
-	flag.StringVar(&c.localLogName, "ll", "test.txt", "	Local Log Name\n")
+	flag.StringVar(&c.localLogName, "ll", "tmp", "	Local Log Name\n")
 
 	flag.StringVar(&c.dbParams.DBName, "dbname", "chess", "Database name\n")
 	flag.StringVar(&c.dbParams.Host, "host", "localhost", "Database host\n")

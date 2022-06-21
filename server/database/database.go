@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"log"
 	"sync"
 )
 
@@ -38,7 +39,7 @@ func Delete(user string) error {
 }
 
 func IncrWinLoss(winner string, losser string) error {
-	// log.Printf("IncrWinLoss %s , %s\n", winner, losser)
+	log.Printf("IncrWinLoss %s , %s\n", winner, losser)
 	store.Lock()
 	defer store.Unlock()
 

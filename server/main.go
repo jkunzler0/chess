@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkunzler0/chess/server/database"
+	"github.com/jkunzler0/chess/server/process"
 	_ "github.com/lib/pq"
 )
 
@@ -16,8 +17,9 @@ import (
 // #######################################################################
 
 type GameResult struct {
-	WinnerID string `json:"WinnerID" binding:"required"`
-	LoserID  string `json:"LoserID" binding:"required"`
+	WinnerID   string `json:"WinnerID" binding:"required"`
+	LoserID    string `json:"LoserID" binding:"required"`
+	ReporterID string `json:"ReporterID"`
 }
 
 type User struct {
@@ -111,6 +113,33 @@ func getAllHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Hello World"})
 }
 
+func gameResultHandler(c *gin.Context) {
+	var gr GameResult
+	var proccessed bool
+	var err error
+
+	if err = c.ShouldBindJSON(&gr); err != nil || gr.ReporterID == "" {
+		c.JSON(400, gin.H{"error": "could not bind JSON"})
+		return
+	}
+
+	proccessed, err = process.ProcessGameResult(gr.WinnerID, gr.LoserID, gr.ReporterID)
+	if !proccessed || err != nil {
+		c.JSON(400, gin.H{"error": "could not process game result, timeout"})
+		return
+	}
+
+	err = database.IncrWinLoss(gr.WinnerID, gr.LoserID)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "could not increment win/loss"})
+		return
+	}
+
+	transact.WriteIncr(gr.WinnerID, gr.LoserID)
+
+	c.JSON(http.StatusOK, gin.H{"message": "success"})
+}
+
 // #######################################################################
 // (Section 2) Transaction Log Setup  ####################################
 // #######################################################################
@@ -167,5 +196,7 @@ func main() {
 	router.POST("/incr", incrHandler)
 	router.GET("/get", getHandler)
 	router.GET("/getAll", getAllHandler)
+
+	router.POST("/gameResult", gameResultHandler)
 	router.Run(fmt.Sprintf(":%d", cfg.listenPort))
 }

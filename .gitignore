@@ -6,3 +6,6 @@
 *.so
 *.txt
 *.txt~
+*notes*
+server/test.txt
+*tmp*
