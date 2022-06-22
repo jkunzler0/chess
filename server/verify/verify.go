@@ -19,7 +19,7 @@ type gameReport struct {
 	lossID    string
 }
 
-var pendResults = struct {
+var pendReports = struct {
 	sync.RWMutex
 	m map[string]gameReport
 }{m: make(map[string]gameReport)}
@@ -30,21 +30,25 @@ var ErrorTimeout = errors.New("timeout")
 // If the match is verified, it returns true.
 func VerifyMatch(gr GameResult) (bool, error) {
 
-	// Stage 1: Check if the match is already in the pending results.
+	// STAGE 1: Verify the match with using both players (i.e. diVerify).
+	//
+	// Step 1: Check if our match is already in the pending game results.
 	// 			If it is, the match can be immediately verified; return true.
-	// 			If it is not, the match must be verified by the second player.
-	// 			If the second player does not respond in time, move to stage 2.
+	// Step 2: Add our match to the pending results.
+	// Step 3: Wait for the other player to complete step 1.
+	// 			If the other player completes step 1, we can return.
+	// 			If we wait more than some time, move to stage 2.
 
-	// Verify the match with using both players (i.e. diVerify)
 	ok, err := diVerify(gr)
 	if ok {
 		return true, err
 	}
 
-	// Stage 2 (TODO): The winner must prove by themselves that the match is valid
+	// STAGE 2 (TODO): Verify the match with one player (i.e. monoVerify).
+	//
+	// Step 1: ...
 
-	// Verify the match with one player (i.e. monoVerify)
-	ok, err = monoVerify(gr)
+	ok, _ = monoVerify(gr)
 	return ok, err
 
 }
