@@ -3,6 +3,7 @@ package p2p
 import (
 	"bufio"
 	"context"
+	"crypto/elliptic"
 	"crypto/rand"
 	"fmt"
 	"strings"
@@ -46,8 +47,11 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 	ctx := context.Background()
 	r := rand.Reader
 
-	// Create a new RSA key pair for this host
-	prvKey, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	// Create a new ECDSA key pair for this host
+	curve := elliptic.P256()
+	xprv, _, err := crypto.GenerateECDSAKeyPairWithCurve(curve, r)
+	// xprv, _, err := crypto.GenerateKeyPairWithReader(crypto.ECDSA, 2048, r) // general method; bits don't matter for ECDSA
+	// xprv, _, err := crypto.GenerateECDSAKeyPair(r) // default curve is P256
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +62,7 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 	// Construct a new libp2p Host
 	host, err := libp2p.New(
 		libp2p.ListenAddrs(sourceMultiAddr),
-		libp2p.Identity(prvKey),
+		libp2p.Identity(xprv),
 	)
 	if err != nil {
 		panic(err)
