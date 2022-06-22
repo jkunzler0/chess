@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkunzler0/chess/server/database"
-	"github.com/jkunzler0/chess/server/process"
+	"github.com/jkunzler0/chess/server/verify"
 	_ "github.com/lib/pq"
 )
 
@@ -115,7 +115,7 @@ func getAllHandler(c *gin.Context) {
 
 func gameResultHandler(c *gin.Context) {
 	var gr GameResult
-	var proccessed bool
+	var verified bool
 	var err error
 
 	if err = c.ShouldBindJSON(&gr); err != nil || gr.ReporterID == "" {
@@ -123,9 +123,15 @@ func gameResultHandler(c *gin.Context) {
 		return
 	}
 
-	proccessed, err = process.ProcessGameResult(gr.WinnerID, gr.LoserID, gr.ReporterID)
-	if !proccessed || err != nil {
+	// validate and proccess the game result
+	verified, err = verify.VerifyMatch(verify.GameResult{WinID: gr.WinnerID, LossID: gr.LoserID, RptID: gr.ReporterID})
+	if err != nil {
 		c.JSON(400, gin.H{"error": "could not process game result, timeout"})
+		return
+	}
+	// If no error, but not verified, then the game was already verified and processed
+	if !verified {
+		c.JSON(http.StatusOK, gin.H{"message": "game authenticated by another user"})
 		return
 	}
 
@@ -137,7 +143,7 @@ func gameResultHandler(c *gin.Context) {
 
 	transact.WriteIncr(gr.WinnerID, gr.LoserID)
 
-	c.JSON(http.StatusOK, gin.H{"message": "success"})
+	c.JSON(http.StatusOK, gin.H{"message": "game authenticated"})
 }
 
 // #######################################################################
