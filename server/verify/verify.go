@@ -46,7 +46,7 @@ func VerifyMatch(gr GameResult) (bool, error) {
 
 	// STAGE 2 (TODO): Verify the match with one player (i.e. monoVerify).
 	//
-	// Step 1: ...
+	// Step 1: Receive a board signed by the loser and verify that the winner's move won the game for them.
 
 	ok, _ = monoVerify(gr)
 	return ok, err

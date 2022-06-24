@@ -156,7 +156,10 @@ func (gs *GameState) PlayHotseat() {
 	fmt.Println("Game End")
 }
 
-func (gs *GameState) PlayP2P() {
+func (gs *GameState) PlayP2P() bool {
+
+	defer close(gs.rch)
+	defer close(gs.wch)
 
 	fmt.Println("----- P2P Chess Game -----")
 	fmt.Println("For a hotseat game or game instructions, see `./chess -help`.")
@@ -182,5 +185,14 @@ func (gs *GameState) PlayP2P() {
 		}
 		turn = !turn
 	}
+
 	fmt.Println("Game End")
+
+	if !turn {
+		fmt.Println("~~~You Win!~~~")
+	} else {
+		fmt.Println("~~~You Lose~~~")
+	}
+
+	return !turn
 }

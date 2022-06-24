@@ -7,6 +7,7 @@ import (
 
 	"github.com/jkunzler0/chess/client/game"
 	"github.com/jkunzler0/chess/client/p2p"
+	"github.com/jkunzler0/chess/client/report"
 )
 
 func main() {
@@ -21,12 +22,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Create Game Instance
 	var g *game.GameState
 
 	// If p2p is off, start a hotseat game
 	if !cfg.p2p {
-		// Initialize Game State
+		// Initialize GameState
 		g, err = game.InitHotseat()
 		if err != nil {
 			panic(err)
@@ -47,8 +47,6 @@ func main() {
 	// Block here until we connect to a peer
 	// On connection to a peer, we receive the GameHello on ch
 	gh := <-ch
-	defer close(gh.RCh)
-	defer close(gh.WCh)
 
 	// Create the GameState with the GameHello's information
 	g, err = game.InitP2P(game.P2PParams{
@@ -59,7 +57,15 @@ func main() {
 		panic(err)
 	}
 
+	// Exchange names with the peer
+	gh.WCh <- cfg.nickname
+	peerNickname := <-gh.RCh
+	fmt.Printf("Connected to %s\n", peerNickname)
+
 	// Start the P2P game
-	g.PlayP2P()
+	win := g.PlayP2P()
+
+	// Report the result of the game to the server
+	report.ReportResult(cfg.nickname, peerNickname, win)
 
 }

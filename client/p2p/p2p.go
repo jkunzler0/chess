@@ -3,8 +3,8 @@ package p2p
 import (
 	"bufio"
 	"context"
-	"crypto/elliptic"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -48,10 +48,7 @@ func P2pSetup(cfg *P2pConfig, ghn chan<- *GameHello) error {
 	r := rand.Reader
 
 	// Create a new ECDSA key pair for this host
-	curve := elliptic.P256()
-	xprv, _, err := crypto.GenerateECDSAKeyPairWithCurve(curve, r)
-	// xprv, _, err := crypto.GenerateKeyPairWithReader(crypto.ECDSA, 2048, r) // general method; bits don't matter for ECDSA
-	// xprv, _, err := crypto.GenerateECDSAKeyPair(r) // default curve is P256
+	xprv, _, err := crypto.GenerateECDSAKeyPair(r)
 	if err != nil {
 		panic(err)
 	}
@@ -130,6 +127,8 @@ func handleStream(stream network.Stream) {
 	ghNotifier <- &GameHello{gh.RCh, gh.WCh, gh.White}
 }
 
+var ErrorStreamReset = errors.New("stream reset")
+
 // Read from the connected peer and send to rch
 func readStream(rw *bufio.ReadWriter, ch chan<- string) {
 	// We expect a correctly formated input since they already processed their own move
@@ -138,6 +137,9 @@ func readStream(rw *bufio.ReadWriter, ch chan<- string) {
 	for {
 		// Block here and wait for peer
 		move, err := rw.ReadString('\n')
+		if err == ErrorStreamReset {
+			return
+		}
 		if err != nil {
 			fmt.Println("Error reading from buffer")
 			panic(err)
