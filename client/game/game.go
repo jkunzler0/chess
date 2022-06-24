@@ -156,7 +156,7 @@ func (gs *GameState) PlayHotseat() {
 	fmt.Println("Game End")
 }
 
-func (gs *GameState) PlayP2P() bool {
+func (gs *GameState) PlayP2P() (bool, bool) {
 
 	defer close(gs.rch)
 	defer close(gs.wch)
@@ -194,5 +194,9 @@ func (gs *GameState) PlayP2P() bool {
 		fmt.Println("~~~You Lose~~~")
 	}
 
-	return !turn
+	if move == "quit" || move == "q" {
+		return false, false
+	}
+
+	return true, !turn
 }

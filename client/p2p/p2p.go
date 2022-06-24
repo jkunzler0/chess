@@ -137,12 +137,13 @@ func readStream(rw *bufio.ReadWriter, ch chan<- string) {
 	for {
 		// Block here and wait for peer
 		move, err := rw.ReadString('\n')
-		if err == ErrorStreamReset {
-			return
-		}
 		if err != nil {
 			fmt.Println("Error reading from buffer")
 			panic(err)
+		}
+		if move == "quit" || move == "q" {
+			ch <- move
+			return
 		}
 		if move == "" || move == "\n" {
 			fmt.Println("Empty buffer")

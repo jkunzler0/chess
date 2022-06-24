@@ -63,7 +63,11 @@ func main() {
 	fmt.Printf("Connected to %s\n", peerNickname)
 
 	// Start the P2P game
-	win := g.PlayP2P()
+	complete, win := g.PlayP2P()
+	if !complete {
+		fmt.Println("Game ended in a draw.")
+		return
+	}
 
 	// Report the result of the game to the server
 	report.ReportResult(cfg.nickname, peerNickname, win)
