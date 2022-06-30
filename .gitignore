@@ -9,3 +9,5 @@
 *notes*
 server/test.txt
 *tmp*
+*.log
+chess-server
